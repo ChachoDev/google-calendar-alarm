@@ -150,32 +150,34 @@ uv run calendar-alarm
 
 - **Windows**: doble clic en `dist\CalendarAlarm.exe`. También puedes crear un
   acceso directo y copiarlo al menú Inicio.
-- **Linux**: `./dist/calendar-alarm`. Para tenerlo en el menú de aplicaciones,
-  copia el binario y un `.desktop`:
-
-  ```bash
-  mkdir -p ~/.local/bin ~/.local/share/applications \
-      ~/.local/share/icons/hicolor/1024x1024/apps
-  cp dist/calendar-alarm ~/.local/bin/
-  cp build/icons/CalendarAlarm.png \
-      ~/.local/share/icons/hicolor/1024x1024/apps/calendar-alarm.png
-  cat > ~/.local/share/applications/calendar-alarm.desktop <<EOF
-  [Desktop Entry]
-  Type=Application
-  Name=Calendar Alarm
-  Comment=Alarmas de Google Calendar
-  Exec=$HOME/.local/bin/calendar-alarm
-  Icon=calendar-alarm
-  Terminal=false
-  Categories=Utility;Calendar;
-  EOF
-  update-desktop-database ~/.local/share/applications 2>/dev/null || true
-  ```
-
-  (el heredoc sin comillas expande `$HOME`, así que `Exec` queda con la ruta
-  absoluta que exige el formato `.desktop`).
+- **Linux**: `./dist/calendar-alarm`. Para añadirlo al menú de aplicaciones,
+  usa el bloque de comandos de más abajo.
 - **macOS**: doble clic en `dist/Calendar Alarm.app`, o arrástrala a
   **Aplicaciones** desde el `.dmg`.
+
+Para integrar la versión de Linux en el menú de aplicaciones:
+
+```bash
+mkdir -p ~/.local/bin ~/.local/share/applications \
+    ~/.local/share/icons/hicolor/1024x1024/apps
+cp dist/calendar-alarm ~/.local/bin/
+cp build/icons/CalendarAlarm.png \
+    ~/.local/share/icons/hicolor/1024x1024/apps/calendar-alarm.png
+cat > ~/.local/share/applications/calendar-alarm.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name=Calendar Alarm
+Comment=Alarmas de Google Calendar
+Exec=$HOME/.local/bin/calendar-alarm
+Icon=calendar-alarm
+Terminal=false
+Categories=Utility;Calendar;
+EOF
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
+```
+
+El heredoc sin comillas expande `$HOME`, así que `Exec` queda con la ruta
+absoluta que exige el formato `.desktop`.
 
 El primer arranque abre la configuración: elige tu `client_secret.json`,
 pulsa **Conectar con Google** y ajusta el margen de aviso. Los datos de sesión
