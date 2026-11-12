@@ -24,9 +24,9 @@ google-api-python-client…) y los recursos (sonido de alarma e iconos).
 ### Dependencias de empaquetado (las instala el script solo)
 
 **No hay que añadir nada a `pyproject.toml` ni al entorno de desarrollo.** El
-script crea un entorno virtual aparte en `build/build-env/` (con `uv` o, si no
-está instalado, con `venv` + `pip`) e instala allí, únicamente para el
-empaquetado:
+script crea un entorno virtual aparte en `build/build-env/` (normalmente con
+`venv` + `pip`, o con `uv` si no hay un Python compatible instalado) e instala
+allí, únicamente para el empaquetado:
 
 - `pyinstaller>=6.11`
 - `pyinstaller-hooks-contrib>=2024.8`
@@ -39,12 +39,13 @@ instalan paquetes nuevos en él.
 
 Hay dos modos; el script elige solo:
 
-1. **Con uv (recomendado)**: crea el entorno aislado y **descarga Python 3.13**
-   si no lo tienes. No necesitas Python instalado.
+1. **Python 3.11–3.13 del sistema** (lo normal): se usa con `venv` y `pip`.
+   Debe estar instalado y en el `PATH` como `python3`, `python` o
+   `python3.13`/`python3.12`/`python3.11`.
+2. **uv (opcional, solo como respaldo)**: si no hay un Python 3.11–3.13
+   instalado, el script usa uv para crear el entorno y descargar la versión.
    - Linux/macOS: `curl -LsSf https://astral.sh/uv/install.sh | sh`
    - Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-2. **Sin uv**: usa un **Python 3.11–3.13 del sistema** con `venv` y `pip`.
-   Si solo tienes Python 3.14 o superior, instala uv (o un Python 3.13).
 - **Linux**: bibliotecas gráficas normales de escritorio (Qt). En Debian/Ubuntu:
 
   ```bash
@@ -57,31 +58,26 @@ Hay dos modos; el script elige solo:
 - **macOS**: herramientas de línea de comandos de Xcode (`xcode-select --install`)
   para `hdiutil` y el firmado ad-hoc. No se necesita cuenta de desarrollador
   para uso propio.
-- **Windows**: con uv, nada extra; sin uv, un Python 3.11–3.13 en el `PATH`.
+- **Windows**: un Python 3.11–3.13 en el `PATH`; si no lo tienes, instala uv.
 
 ---
 
 ## 2. Cómo ejecutar el script en cada sistema
 
-Todos los comandos se lanzan **desde la raíz del proyecto**.
-
-> Con uv se usa `uv run --no-project` para que el script corra con un Python
-> temporal y **no** sincronice ni altere el `.venv` del proyecto. Sin uv, el
-> script se ejecuta directamente con tu Python 3.11–3.13.
+Todos los comandos se lanzan **desde la raíz del proyecto**, con un Python
+3.11–3.13. No hace falta uv.
 
 ### Linux
 
 ```bash
-uv run --no-project python packaging/build.py   # con uv (recomendado)
-python3 packaging/build.py                      # sin uv (Python 3.11–3.13)
+python3 packaging/build.py
 ./dist/calendar-alarm
 ```
 
 ### Windows (PowerShell o CMD)
 
 ```powershell
-uv run --no-project python packaging\build.py   # con uv (recomendado)
-python packaging\build.py                       # sin uv (Python 3.11–3.13)
+python packaging\build.py
 .\dist\CalendarAlarm.exe
 ```
 
@@ -91,12 +87,14 @@ pulsa **Más información → Ejecutar de todas formas** (el binario es tuyo).
 ### macOS
 
 ```bash
-uv run --no-project python packaging/build.py   # con uv (recomendado)
-python3 packaging/build.py                      # sin uv (Python 3.11–3.13)
+python3 packaging/build.py
 open "dist/Calendar Alarm.app"
 # o el instalador:
 open dist/CalendarAlarm.dmg
 ```
+
+> Si tu `python3` no es 3.11–3.13, usa un intérprete válido
+> (`python3.13 packaging/build.py`) o deja que el script recurra a uv.
 
 La primera vez macOS puede bloquear la app descargada de internet. Como no está
 firmada con un certificado de Apple, ábrela con **clic derecho → Abrir**, o
@@ -124,10 +122,9 @@ python packaging/build.py --help
 
 1. Detecta el sistema operativo (`win32`, `darwin` o Linux).
 2. Limpia `build/` y `dist/` (salvo `--no-clean`).
-3. Crea `build/build-env/` con `uv venv --python 3.13` o, si no hay uv, con
-   `python -m venv` usando un Python 3.11–3.13 del sistema.
-4. Instala el proyecto limpio y PyInstaller **solo ahí** (`uv pip install` o
-   `pip install`).
+3. Crea `build/build-env/` con `venv` + `pip` a partir de tu Python 3.11–3.13
+   del sistema (o, si no hay, con `uv venv --python 3.13`).
+4. Instala el proyecto limpio y PyInstaller **solo ahí** (`pip install`).
 5. Genera los iconos de la app (PNG, ICO e ICNS) en `build/icons/` mediante
    `packaging/make_icons.py`, dibujados con el mismo diseño de la campana.
 6. Ejecuta PyInstaller sobre `packaging/entrypoint.py` incluyendo el paquete
@@ -264,7 +261,7 @@ git push origin v1.0.0
 
 | Síntoma | Causa / solución |
 |---|---|
-| `No se encontró 'uv' ni un Python 3.13` | Instala uv (recomendado) o un Python 3.11–3.13 con `venv` y `pip`. |
+| `No se encontró un Python 3.13 con venv/pip ni 'uv'` | Instala Python 3.11–3.13 o, si no puedes, uv (que descarga ese Python). |
 | PyInstaller no encuentra `PySide6` | Borra `build/` y vuelve a ejecutar sin `--no-clean`. |
 | El `.exe` se abre y se cierra al instante | Compílalo con consola para ver el error: añade temporalmente `--console` a la orden de PyInstaller en `packaging/build.py`. |
 | La alarma no suena en el ejecutable | Comprueba que `calendar_alarm/assets/alarm.wav` está en el wheel; el script usa `--collect-data calendar_alarm`. |

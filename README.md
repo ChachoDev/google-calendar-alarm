@@ -56,9 +56,12 @@ Python, todas las dependencias y los recursos) para el sistema en el que se
 compila:
 
 ```bash
-uv run --no-project python packaging/build.py   # con uv (recomendado)
-python3 packaging/build.py                      # sin uv (Python 3.11–3.13)
+python3 packaging/build.py
 ```
+
+> Necesitas un Python 3.11–3.13 (el script usa `venv` + `pip`). Si tu `python3`
+> es otra versión, ejecuta `python3.13 packaging/build.py`, o deja que use uv
+> como respaldo.
 
 | Sistema  | Resultado                                              |
 |----------|--------------------------------------------------------|
