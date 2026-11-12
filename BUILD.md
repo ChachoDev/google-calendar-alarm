@@ -292,7 +292,7 @@ apartado «Tests» del [README](README.md).
 
 - **Arquitectura**: el binario es nativo de la máquina donde se compila
   (`x86_64` o `arm64`). Para distribuir a equipos ARM (p. ej. Mac con Apple
-  Silicon) compílalo en un equipo ARM o con el runner `macos-14`+ del CI.
+  Silicon) compílalo en un equipo ARM o con el runner `macos-latest` del CI (Apple Silicon).
 - **Linux y glibc**: un binario compilado en una distribución nueva puede no
   arrancar en otra más antigua. Para máxima compatibilidad, compílalo en la
   versión de Linux más antigua que vayas a soportar (el workflow usa el runner

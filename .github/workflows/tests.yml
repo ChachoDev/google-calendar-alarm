@@ -23,7 +23,7 @@ jobs:
             label: Linux
           - os: windows-latest
             label: Windows
-          - os: macos-14
+          - os: macos-latest
             label: macOS
 
     steps:
