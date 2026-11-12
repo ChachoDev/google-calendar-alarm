@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import threading
 from pathlib import Path
 
@@ -11,12 +12,19 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 from calendar_alarm.oauth_client import client_config
 
-# calendar.readonly: leer eventos. openid/email: mostrar la cuenta conectada.
+# calendar.readonly: leer eventos. openid/userinfo.email: mostrar la cuenta.
+CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.readonly"
 SCOPES = [
-    "https://www.googleapis.com/auth/calendar.readonly",
+    CALENDAR_SCOPE,
     "openid",
-    "email",
+    "https://www.googleapis.com/auth/userinfo.email",
 ]
+
+# Google normaliza y reordena los scopes en la respuesta (p. ej. «email» pasa a
+# «userinfo.email», y el orden puede cambiar). oauthlib lo interpreta como un
+# cambio de permisos y aborta con «Scope has changed». Con esta variable acepta
+# la respuesta y comprobamos después que el calendario sí esté autorizado.
+os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
 
 
 class GoogleAuthError(RuntimeError):
@@ -102,12 +110,24 @@ class GoogleAuth:
             flow = InstalledAppFlow.from_client_config(config, SCOPES)
             kwargs: dict[str, object] = {"port": 0, "open_browser": True}
             if select_account:
-                kwargs["prompt"] = "select_account"
+                # «consent» obliga a mostrar la pantalla de permisos (así el
+                # usuario puede marcar Google Calendar aunque ya hubiera
+                # autorizado la cuenta antes); «select_account» permite elegir
+                # otra cuenta.
+                kwargs["prompt"] = "consent select_account"
             creds = flow.run_local_server(**kwargs)  # type: ignore[arg-type]
         except GoogleAuthError:
             raise
         except Exception as exc:
             raise GoogleAuthError(f"Error al autenticar con Google: {exc}") from exc
+
+        granted = set(creds.scopes or [])
+        if granted and CALENDAR_SCOPE not in granted:
+            raise GoogleAuthError(
+                "No se ha concedido acceso al calendario. Vuelve a pulsar "
+                "«Conectar con Google» y deja marcada la casilla de "
+                "Google Calendar."
+            )
 
         with self._lock:
             self._creds = creds

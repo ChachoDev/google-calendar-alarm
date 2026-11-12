@@ -248,8 +248,14 @@ CalendarWorker (hilo) ──events──▶ AlarmController ──señales──
   revisa que haya un servidor de sonido (PulseAudio/PipeWire, WASAPI, CoreAudio).
 - **El navegador no se abre al autenticar**: la consola mostrará una URL;
   ábrela manualmente en tu navegador.
+- **«No se ha concedido acceso al calendario»**: en la pantalla de permisos de
+  Google hay una casilla por permiso; deja marcada **Google Calendar** y vuelve
+  a pulsar *Conectar con Google*.
+- **«Scope has changed…»**: actualiza a la última versión; Google normaliza los
+  permisos (`email` → `userinfo.email`) y las versiones antiguas lo trataban
+  como un error.
 - **«Esta compilación no tiene configurada la aplicación de Google»**: falta
-  `src/calendar_alarm/assets/google_client.json`; mira
+  `client_secret.json` en la raíz al compilar; mira
   [BUILD.md § Cliente OAuth de Google](BUILD.md).
 - **Sin eventos**: comprueba que la cuenta conectada sea la correcta
   (botón *Cambiar de cuenta*) y que el evento tenga hora exacta
