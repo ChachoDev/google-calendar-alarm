@@ -26,7 +26,9 @@ personalizable **antes** de que empiece un evento de Google Calendar.
 - **Autenticación con Google desde la propia interfaz**: botón para conectar,
   cerrar sesión y cambiar de cuenta.
 - Al elegir **Salir** se detiene el audio, se finaliza el hilo de fondo y la
-  aplicación termina por completo.
+  aplicación termina por completo. Lo mismo ocurre con las salidas que pide el
+  sistema (⌘Q o **Salir** del Dock en macOS, cierre de sesión); cerrar una
+  ventana con la ✕ solo la oculta en la bandeja.
 
 ## Requisitos
 
@@ -59,9 +61,11 @@ compila:
 python3 packaging/build.py
 ```
 
-> Necesitas un Python 3.11–3.13 (el script usa `venv` + `pip`). Si tu `python3`
-> es otra versión, ejecuta `python3.13 packaging/build.py`, o deja que use uv
-> como respaldo.
+> Si tienes **uv** instalado, el script lo usa para crear el entorno de build
+> (rápido y con caché: PySide6 solo se descarga la primera vez). Si no, usa un
+> Python 3.11–3.13 del sistema con `venv` + `pip` (en Windows también lo busca
+> con el lanzador `py`). Si tu `python3` es otra versión, ejecuta
+> `python3.13 packaging/build.py`.
 
 | Sistema  | Resultado                                              |
 |----------|--------------------------------------------------------|
@@ -125,7 +129,7 @@ avisa de que el ejecutable no podrá conectarse.
 
 > **No** uses credenciales de tipo «Aplicación web»: su secreto sí es
 > confidencial y no debe distribuirse. El `token.json` de cada usuario se
-> guarda solo en su equipo.
+> guarda solo en su equipo (en Linux y macOS, con permisos `600`).
 
 ## Uso
 
@@ -141,7 +145,8 @@ uv run calendar-alarm
 4. La aplicación consulta Google Calendar cada 60 s (configurable). Cuando un
    evento esté a menos del margen, sonará la alarma, se mostrará la ventana
    aviso con los datos del evento y la ventana principal se minimizará a la
-   bandeja.
+   bandeja. Cada evento avisa una sola vez; si lo mueves a otra hora, vuelve
+   a avisar con el nuevo horario.
 
 ### Comportamiento de la bandeja
 
@@ -246,8 +251,12 @@ CalendarWorker (hilo) ──events──▶ AlarmController ──señales──
 
 - **"Sin dispositivo de audio"**: la alarma visual seguirá funcionando;
   revisa que haya un servidor de sonido (PulseAudio/PipeWire, WASAPI, CoreAudio).
-- **El navegador no se abre al autenticar**: la consola mostrará una URL;
-  ábrela manualmente en tu navegador.
+- **El navegador no se abre al autenticar**: si lanzaste la app desde una
+  terminal (`uv run calendar-alarm`), allí aparece la URL; ábrela a mano. La
+  espera de autorización caduca a los 5 minutos: vuelve a pulsar el botón.
+- **«La sesión de Google ha caducado o se ha revocado»**: Google ya no acepta
+  el token guardado (contraseña cambiada, acceso retirado…). Pulsa
+  **Cambiar de cuenta** para volver a conectar.
 - **«No se ha concedido acceso al calendario»**: en la pantalla de permisos de
   Google hay una casilla por permiso; deja marcada **Google Calendar** y vuelve
   a pulsar *Conectar con Google*.

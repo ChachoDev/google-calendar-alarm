@@ -27,7 +27,8 @@ class AlarmController(QObject):
         self._config = config
         self._ringing = False
         self._current: CalendarEvent | None = None
-        # Eventos ya avisados (para no volver a sonar por el mismo evento)
+        # Avisos ya lanzados, por evento y hora de inicio: no se repite el mismo
+        # aviso, pero si el evento se mueve a otra hora vuelve a avisar.
         self._handled: set[str] = set()
 
     # ------------------------------------------------------------- estado
@@ -54,7 +55,7 @@ class AlarmController(QObject):
         candidates = [
             event
             for event in events
-            if event.id not in self._handled
+            if _alarm_key(event) not in self._handled
             and (event.start - warn) <= now <= (event.start + grace)
         ]
         if not candidates:
@@ -65,7 +66,7 @@ class AlarmController(QObject):
     def _start(self, event: CalendarEvent) -> None:
         self._ringing = True
         self._current = event
-        self._handled.add(event.id)
+        self._handled.add(_alarm_key(event))
 
         if not self._audio.play_loop(self._config.resolved_sound_path):
             self.audio_error.emit(
@@ -85,3 +86,7 @@ class AlarmController(QObject):
     def forget_handled(self) -> None:
         """Permite volver a avisar por eventos ya tratados (cambio de cuenta)."""
         self._handled.clear()
+
+
+def _alarm_key(event: CalendarEvent) -> str:
+    return f"{event.id}@{event.start.isoformat()}"

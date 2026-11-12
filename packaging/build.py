@@ -19,13 +19,14 @@ Uso (desde la raíz del proyecto):
     python3 packaging/build.py                     # Python 3.11-3.13 del sistema
     uv run --no-project python packaging/build.py  # alternativa si no hay Python
 
-No requiere uv: se usa un Python 3.11–3.13 del sistema (venv + pip). Si no hay
-ninguno instalado, el script recurre a uv cuando está disponible para crear el
-entorno de build con la versión indicada.
+Si uv está instalado se usa para crear el entorno (rápido y con caché). Si no,
+se usa un Python 3.11–3.13 del sistema con venv + pip (en Windows también se
+busca con el lanzador ``py``).
 
 Opciones:
 
     --no-clean          No borrar build/ y dist/ antes de empezar
+    --use-pip           Usar venv + pip aunque uv esté instalado
     --no-dmg            (macOS) No crear el .dmg, solo la .app
     --python VERSION    Versión de Python para el entorno de build (def. 3.13)
 """
@@ -38,6 +39,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import NoReturn
 
@@ -103,14 +105,39 @@ def _python_version(executable: str) -> str | None:
             check=False,
             timeout=20,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return None
     return result.stdout.strip() if result.returncode == 0 else None
+
+
+def _windows_launcher_python(python_version: str) -> str | None:
+    """En Windows, resuelve ``py -3.X`` (el lanzador oficial) a su ejecutable."""
+    launcher = shutil.which("py")
+    if launcher is None:
+        return None
+    try:
+        result = subprocess.run(
+            [launcher, f"-{python_version}", "-c", "import sys; print(sys.executable)"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=20,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    path = result.stdout.strip()
+    return path if result.returncode == 0 and path else None
 
 
 def find_system_python(python_version: str) -> str | None:
     """Busca un intérprete compatible que pueda crear entornos con pip."""
     candidates = [f"python{python_version}", "python3", "python", sys.executable]
+    if os.name == "nt":
+        # En Windows no existe python3.X y python3 puede ser el stub de la
+        # Microsoft Store: se prueba primero el lanzador ``py``.
+        launcher_python = _windows_launcher_python(python_version)
+        if launcher_python:
+            candidates.insert(0, launcher_python)
     checked: set[str] = set()
     for name in candidates:
         executable = shutil.which(name) or (name if os.path.isabs(name) else None)
@@ -258,40 +285,59 @@ def prepare_google_client(python: Path) -> None:
     )
 
 
-def prepare_build_environment(python_version: str) -> Path:
+def pip_environment() -> dict[str, str]:
+    """Entorno para pip que no se ve afectado por la configuración del usuario.
+
+    Un ``pip.conf`` con ``user = true`` (habitual en macOS con Homebrew) hace
+    fallar cualquier instalación dentro de un venv; se anula solo para el build.
+    """
+    env = os.environ.copy()
+    env["PIP_USER"] = "0"
+    env["PIP_REQUIRE_VIRTUALENV"] = "0"
+    env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
+    env.setdefault("PIP_DEFAULT_TIMEOUT", "60")
+    env.setdefault("PIP_RETRIES", "5")
+    return env
+
+
+def prepare_build_environment(python_version: str, *, use_pip: bool) -> Path:
     """Crea un entorno aislado con el proyecto limpio + PyInstaller.
 
-    Preferencia: Python del sistema (venv + pip). Si no hay un 3.11–3.13
-    instalado, se usa uv como respaldo para crear el entorno.
+    Preferencia: uv si está instalado (rápido, con caché y sin depender de la
+    configuración de pip); si no, Python del sistema con venv + pip.
     """
     log(f"Creando entorno de empaquetado aislado (Python {python_version})")
     python = venv_python()
     base = find_system_python(python_version)
+    uv = None if use_pip else find_uv()
+    env: dict[str, str] | None = None
 
-    if base is not None:
+    if uv is not None:
+        interpreter = base or python_version
+        print(f"    Usando uv con Python {interpreter}", flush=True)
+        run([uv, "venv", "--clear", "--python", interpreter, BUILD_ENV])
+        install = [uv, "pip", "install", "--python", python]
+    elif base is not None:
         print(f"    Usando Python del sistema: {base} (venv + pip)", flush=True)
         run([base, "-m", "venv", "--clear", BUILD_ENV])
-        install = [python, "-m", "pip", "install", "--quiet"]
+        install = [python, "-m", "pip", "install", "--progress-bar", "on"]
+        env = pip_environment()
     else:
-        uv = find_uv()
-        if uv is None:
-            fail(
-                f"No se encontró un Python {python_version} con venv/pip ni 'uv'.\n"
-                f"  Instala Python {python_version} y repite el comando, o instala uv\n"
-                "  (https://docs.astral.sh/uv/), que puede descargar ese Python."
-            )
-        print(f"    Sin Python {python_version} en el sistema: usando uv", flush=True)
-        run([uv, "venv", "--clear", "--python", python_version, BUILD_ENV])
-        install = [uv, "pip", "install", "--python", python, "--quiet"]
+        fail(
+            f"No se encontró un Python {python_version} con venv/pip ni 'uv'.\n"
+            f"  Instala Python {python_version} y repite el comando, o instala uv\n"
+            "  (https://docs.astral.sh/uv/), que puede descargar ese Python."
+        )
 
     if not python.exists():
         fail(f"No se pudo crear el intérprete del entorno de build: {python}")
 
     log("Instalando el proyecto y sus dependencias en el entorno aislado")
-    run([*install, "."])
+    print("    (la primera vez descarga PySide6, varios cientos de MB)", flush=True)
+    run([*install, "."], env=env)
 
     log("Instalando PyInstaller (solo en el entorno de build)")
-    run([*install, *PACKAGING_REQUIREMENTS])
+    run([*install, *PACKAGING_REQUIREMENTS], env=env)
     return python
 
 
@@ -364,20 +410,30 @@ def create_dmg() -> Path | None:
         return None
     dmg_path = DIST_DIR / "CalendarAlarm.dmg"
     log("Creando imagen de disco (.dmg)")
-    run(
-        [
-            "hdiutil",
-            "create",
-            "-volname",
-            APP_NAME_MACOS,
-            "-srcfolder",
-            app_path,
-            "-ov",
-            "-format",
-            "UDZO",
-            dmg_path,
-        ]
-    )
+    command: list[object] = [
+        "hdiutil",
+        "create",
+        "-volname",
+        APP_NAME_MACOS,
+        "-srcfolder",
+        app_path,
+        "-ov",
+        "-format",
+        "UDZO",
+        dmg_path,
+    ]
+    # hdiutil falla a veces con «Resource busy» (Spotlight o XProtect aún
+    # leyendo la .app recién creada): se reintenta antes de rendirse.
+    attempts = 4
+    for attempt in range(1, attempts + 1):
+        try:
+            run(command)
+            return dmg_path
+        except subprocess.CalledProcessError:
+            if attempt == attempts:
+                raise
+            print(f"    hdiutil falló; reintento {attempt}/{attempts - 1} en 5 s", flush=True)
+            time.sleep(5)
     return dmg_path
 
 
@@ -424,6 +480,11 @@ def main() -> int:
         default="3.13",
         help="Versión de Python del entorno de build (por defecto 3.13)",
     )
+    parser.add_argument(
+        "--use-pip",
+        action="store_true",
+        help="Usar venv + pip aunque uv esté instalado",
+    )
     args = parser.parse_args()
 
     system = {"win32": "Windows", "darwin": "macOS"}.get(sys.platform, "Linux")
@@ -434,7 +495,7 @@ def main() -> int:
     uv = find_uv()
     print(f"    uv: {uv or 'no encontrado (se usará venv + pip del sistema)'}")
     clean(not args.no_clean)
-    python = prepare_build_environment(args.python)
+    python = prepare_build_environment(args.python, use_pip=args.use_pip)
     prepare_google_client(python)
     generate_icons(python)
 

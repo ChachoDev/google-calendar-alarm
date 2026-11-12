@@ -24,7 +24,7 @@ from calendar_alarm.ui.hyprland import (
     resize_alarm_window,
 )
 from calendar_alarm.ui.theme import ALARM_QSS
-from calendar_alarm.ui.util import fit_to_screen
+from calendar_alarm.ui.util import fit_to_screen, is_quitting
 
 
 class AlarmWindow(QWidget):
@@ -56,7 +56,6 @@ class AlarmWindow(QWidget):
         self._pulse = QTimer(self)
         self._pulse.setInterval(550)
         self._pulse.timeout.connect(self._toggle_pulse)
-        self._pulse.start()
 
     # ------------------------------------------------------------ UI
     def _build_ui(self) -> None:
@@ -139,8 +138,15 @@ class AlarmWindow(QWidget):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         # Cerrar la ventana no detiene la alarma: hay que pulsar "Parar alarma".
+        if is_quitting():
+            event.accept()
+            return
         event.ignore()
         self.hide()
+
+    def hideEvent(self, event) -> None:
+        super().hideEvent(event)
+        self.stop_pulse()
 
     def _toggle_pulse(self) -> None:
         self._pulse_on = not self._pulse_on
@@ -171,6 +177,8 @@ class AlarmWindow(QWidget):
         self.raise_()
         self.activateWindow()
         self._stop_btn.setFocus()
+        # El parpadeo solo corre mientras la ventana está visible.
+        self._pulse.start()
 
         # En Hyprland (tiling) hay que convertirla en flotante y centrarla;
         # se hace justo después del mapeo para que el WM actúe sobre ella.

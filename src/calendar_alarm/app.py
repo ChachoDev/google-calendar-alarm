@@ -13,6 +13,7 @@ from calendar_alarm.ui.alarm_window import AlarmWindow
 from calendar_alarm.ui.main_window import MainWindow
 from calendar_alarm.ui.theme import APP_QSS
 from calendar_alarm.ui.tray import TrayIcon
+from calendar_alarm.ui.util import QuitWatcher, mark_quitting
 from calendar_alarm.workers import CalendarWorker
 
 
@@ -29,6 +30,8 @@ class CalendarAlarmApp:
         self.app = QApplication(sys.argv)
         # app_id estable en Wayland (Hyprland, sway…): sin esto Qt lo deriva
         # del nombre del ejecutable y cambia entre desarrollo y empaquetado.
+        self._quit_watcher = QuitWatcher(self.app)
+        self.app.installEventFilter(self._quit_watcher)
         self.app.setStyle("Fusion")
         self.app.setStyleSheet(APP_QSS)
 
@@ -143,11 +146,13 @@ class CalendarAlarmApp:
 
     # ------------------------------------------------------------- ciclo de vida
     def quit(self) -> None:
+        mark_quitting()
         self.app.quit()
 
     def _shutdown(self) -> None:
         """Detiene audio, hilo de fondo y guarda la configuración: salida completa."""
         self.worker.stop()
+        self.main_window.shutdown()
         self.audio.shutdown()
         save_config(self.config)
         self.tray.hide()

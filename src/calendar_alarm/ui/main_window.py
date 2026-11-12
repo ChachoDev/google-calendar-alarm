@@ -25,7 +25,7 @@ from calendar_alarm.config import Config, default_sound_path, save_config
 from calendar_alarm.oauth_client import is_configured
 from calendar_alarm.ui.icons import bell_icon
 from calendar_alarm.ui.theme import APP_QSS
-from calendar_alarm.ui.util import fit_to_screen
+from calendar_alarm.ui.util import fit_to_screen, is_quitting
 
 SOUND_FILTER = (
     "Archivos de sonido (*.wav *.mp3 *.ogg *.flac);;"
@@ -395,7 +395,17 @@ class MainWindow(QWidget):
         super().resizeEvent(event)
         self.refresh_sound_label()
 
+    def shutdown(self) -> None:
+        """Al salir: no dejar el hilo de autenticación vivo (Qt abortaría)."""
+        worker = self._sign_in_worker
+        if worker is not None and worker.isRunning():
+            worker.terminate()
+            worker.wait(2000)
+
     def closeEvent(self, event: QCloseEvent) -> None:
         # La ventana se oculta; la aplicación sigue viva en la bandeja.
+        if is_quitting():
+            event.accept()
+            return
         event.ignore()
         self.hide()

@@ -6,6 +6,7 @@ import os
 import threading
 from pathlib import Path
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -25,6 +26,10 @@ SCOPES = [
 # cambio de permisos y aborta con «Scope has changed». Con esta variable acepta
 # la respuesta y comprobamos después que el calendario sí esté autorizado.
 os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
+
+# Tiempo máximo esperando a que el usuario autorice en el navegador. Sin límite,
+# cerrar la pestaña dejaría el servidor local (y el hilo) esperando para siempre.
+SIGN_IN_TIMEOUT_SECONDS = 300
 
 
 class GoogleAuthError(RuntimeError):
@@ -56,6 +61,10 @@ class GoogleAuth:
     def _save(self, creds: Credentials) -> None:
         try:
             self._token_path.write_text(creds.to_json(), encoding="utf-8")
+            # El token da acceso al calendario: solo legible por el usuario
+            # (en Windows chmod solo afecta al atributo de solo lectura).
+            if os.name != "nt":
+                self._token_path.chmod(0o600)
         except OSError:
             pass
 
@@ -77,7 +86,12 @@ class GoogleAuth:
         return _email_from_credentials(creds)
 
     def get_credentials(self) -> Credentials | None:
-        """Credenciales válidas (refrescando el token si caducó). Llama a Google."""
+        """Credenciales válidas (refrescando el token si caducó). Llama a Google.
+
+        Devuelve None si no hay sesión. Lanza ``GoogleAuthError`` si la sesión
+        existe pero no se puede renovar, para que el usuario vea el motivo en
+        lugar de un calendario aparentemente vacío.
+        """
         with self._lock:
             creds = self._creds
         if creds is None:
@@ -87,8 +101,13 @@ class GoogleAuth:
                 with self._lock:
                     creds.refresh(Request())
                     self._save(creds)
-            except Exception:
-                return None
+            except RefreshError as exc:
+                raise GoogleAuthError(
+                    "La sesión de Google ha caducado o se ha revocado. "
+                    "Pulsa «Cambiar de cuenta» para volver a conectar."
+                ) from exc
+            except Exception as exc:
+                raise GoogleAuthError(f"No se pudo renovar la sesión de Google: {exc}") from exc
         return creds if creds.valid else None
 
     # ------------------------------------------------------------- acciones
@@ -108,7 +127,11 @@ class GoogleAuth:
             )
         try:
             flow = InstalledAppFlow.from_client_config(config, SCOPES)
-            kwargs: dict[str, object] = {"port": 0, "open_browser": True}
+            kwargs: dict[str, object] = {
+                "port": 0,
+                "open_browser": True,
+                "timeout_seconds": SIGN_IN_TIMEOUT_SECONDS,
+            }
             if select_account:
                 # «consent» obliga a mostrar la pantalla de permisos (así el
                 # usuario puede marcar Google Calendar aunque ya hubiera
@@ -118,6 +141,13 @@ class GoogleAuth:
             creds = flow.run_local_server(**kwargs)  # type: ignore[arg-type]
         except GoogleAuthError:
             raise
+        except AttributeError as exc:
+            # Al agotarse el tiempo, el servidor local no recibe la respuesta
+            # de Google y la librería falla al leer una URI inexistente.
+            raise GoogleAuthError(
+                "No se completó la autorización en el navegador a tiempo. "
+                "Vuelve a pulsar «Conectar con Google»."
+            ) from exc
         except Exception as exc:
             raise GoogleAuthError(f"Error al autenticar con Google: {exc}") from exc
 
