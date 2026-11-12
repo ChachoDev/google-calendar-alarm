@@ -98,31 +98,26 @@ seleccionar ningún `client_secret.json`.
    email de soporte y tu cuenta como **usuario de prueba** (hasta 100 mientras
    la app no esté verificada).
 5. **Credenciales → Crear credenciales → ID de cliente de OAuth**, tipo
-   **Aplicación de escritorio**. Descarga el JSON y toma su `client_id` y
-   `client_secret`.
+   **Aplicación de escritorio**. Descarga el JSON.
 
-**No los subas al repositorio.** Pásalos al compilar y el script los inyecta
-solo en el binario:
+**Guárdalo como `client_secret.json` en la raíz del proyecto.** Ese nombre ya
+está en `.gitignore`: no se sube a GitHub. Al compilar, el script lo lee y lo
+inyecta **solo en el binario**:
 
 ```bash
-export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
-export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=GOCSPX-...
 python3 packaging/build.py
 ```
 
 El código fuente y git quedan limpios: las credenciales acaban únicamente en
-`build/build-env/` (y por tanto dentro del ejecutable). Si prefieres tenerlas
-en el código para uso local, rellena las constantes `CLIENT_ID` y
-`CLIENT_SECRET` de `src/calendar_alarm/oauth_client.py`, pero entonces sí
-estarán en el repo.
+`build/build-env/` (y por tanto dentro del ejecutable). También puedes usar
+otra ubicación con `CALENDAR_ALARM_GOOGLE_CLIENT_FILE=/ruta/al/json`, o pasar
+`CALENDAR_ALARM_GOOGLE_CLIENT_ID` y `CALENDAR_ALARM_GOOGLE_CLIENT_SECRET` como
+variables de entorno (lo que usa el CI con secrets).
 
-Alternativa para desarrollo, sin compilar:
+Para desarrollo, sin compilar:
 
 ```bash
-export CALENDAR_ALARM_GOOGLE_CLIENT_FILE=~/Descargas/client_secret.json
-# o
-export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
-export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=...
+CALENDAR_ALARM_GOOGLE_CLIENT_FILE=client_secret.json uv run calendar-alarm
 ```
 
 Si no hay credenciales por ninguna vía, el botón muestra un aviso y el build

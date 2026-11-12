@@ -58,6 +58,10 @@ PACKAGING_REQUIREMENTS = [
     "pyinstaller-hooks-contrib>=2024.8",
 ]
 
+# Archivo local con las credenciales de Google. Está en .gitignore y el script
+# lo lee para inyectarlo solo en el binario.
+LOCAL_CLIENT_FILE = ROOT / "client_secret.json"
+
 # Imports dinámicos que PyInstaller no puede descubrir por sí solo.
 HIDDEN_IMPORTS = [
     "googleapiclient.discovery_cache",
@@ -161,14 +165,32 @@ def _installed_assets_dir(python: Path) -> Path | None:
     return Path(probe.stdout.strip())
 
 
+def _read_credentials_file(path: Path) -> dict[str, object] | None:
+    """Lee un JSON de credenciales (formato ``installed`` o ``web``)."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    section = data.get("installed") or data.get("web")
+    if not isinstance(section, dict) or not section.get("client_id"):
+        return None
+    return {"installed": section}
+
+
 def prepare_google_client(python: Path) -> None:
     """Inyecta las credenciales OAuth solo en el binario, nunca en el repo.
 
-    Si existen ``CALENDAR_ALARM_GOOGLE_CLIENT_ID`` y
-    ``CALENDAR_ALARM_GOOGLE_CLIENT_SECRET`` en el entorno, se escriben como
-    recurso del paquete instalado (``.../site-packages/calendar_alarm/assets``)
-    para que PyInstaller las empaquete. El código fuente y el repositorio
-    quedan limpios.
+    Orden de búsqueda:
+
+    1. ``CALENDAR_ALARM_GOOGLE_CLIENT_ID`` + ``_SECRET`` del entorno.
+    2. Archivo indicado en ``CALENDAR_ALARM_GOOGLE_CLIENT_FILE``.
+    3. ``client_secret.json`` en la raíz del proyecto (en .gitignore).
+    4. ``src/calendar_alarm/assets/google_client.json`` (también ignorado).
+
+    Se copian al paquete instalado (``.../site-packages/calendar_alarm/assets``)
+    para que PyInstaller las empaquete. El código fuente y git quedan limpios.
     """
     client_id = os.environ.get("CALENDAR_ALARM_GOOGLE_CLIENT_ID", "").strip()
     client_secret = os.environ.get("CALENDAR_ALARM_GOOGLE_CLIENT_SECRET", "").strip()
@@ -195,10 +217,17 @@ def prepare_google_client(python: Path) -> None:
         print("    Credenciales OAuth inyectadas desde el entorno", flush=True)
         return
 
-    source_client = ROOT / "src" / "calendar_alarm" / "assets" / "google_client.json"
-    if source_client.is_file():
-        shutil.copyfile(source_client, installed_client)
-        print("    Credenciales OAuth tomadas de assets/google_client.json", flush=True)
+    env_file = os.environ.get("CALENDAR_ALARM_GOOGLE_CLIENT_FILE", "").strip()
+    candidates = [Path(env_file).expanduser()] if env_file else []
+    candidates.append(LOCAL_CLIENT_FILE)
+    candidates.append(ROOT / "src" / "calendar_alarm" / "assets" / "google_client.json")
+
+    for candidate in candidates:
+        config = _read_credentials_file(candidate)
+        if config is None:
+            continue
+        installed_client.write_text(json.dumps(config, indent=2), encoding="utf-8")
+        print(f"    Credenciales OAuth tomadas de {candidate}", flush=True)
         return
 
     env = {

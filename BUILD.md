@@ -47,31 +47,37 @@ ejecutable. Regístralas **una sola vez**:
    cuenta como **usuario de prueba**.
 3. **Credenciales → Crear credenciales → ID de cliente de OAuth → Aplicación
    de escritorio**. Descarga el JSON.
-4. Copia `client_id` y `client_secret` en las constantes `CLIENT_ID` y
-   `CLIENT_SECRET` de `src/calendar_alarm/oauth_client.py` **o**, si el
-   repositorio es público, déjalas vacías y pásalas al compilar (recomendado):
+4. **Guárdalo como `client_secret.json` en la raíz del proyecto.** Ese nombre
+   ya está en `.gitignore`, así que nunca se sube a git.
+
+A partir de ahí todo es automático:
 
 ```bash
-export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
-export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=GOCSPX-...
 python3 packaging/build.py
 ```
 
-El script escribe las credenciales **solo** en el paquete instalado dentro de
-`build/build-env/`, así que acaban dentro del ejecutable pero nunca en el
-código ni en git. En GitHub Actions se leen de los secrets del repositorio
-(`GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`).
+El script lee `client_secret.json`, lo normaliza y lo escribe **solo** en el
+paquete instalado dentro de `build/build-env/`, así que las credenciales acaban
+dentro del ejecutable pero nunca en el código ni en git. El propio script
+elimina cualquier `google_client.json` inyectado en builds anteriores.
 
-Alternativa para desarrollo, sin tocar el código ni compilar:
+Orden de búsqueda de credenciales (el primero que exista gana):
+
+1. `CALENDAR_ALARM_GOOGLE_CLIENT_ID` + `CALENDAR_ALARM_GOOGLE_CLIENT_SECRET`
+   (lo que usa el CI con secrets del repositorio).
+2. Archivo indicado en `CALENDAR_ALARM_GOOGLE_CLIENT_FILE`.
+3. `client_secret.json` en la raíz del proyecto (recomendado).
+4. `src/calendar_alarm/assets/google_client.json` (también ignorado).
+
+Para desarrollo, sin compilar:
 
 ```bash
-export CALENDAR_ALARM_GOOGLE_CLIENT_FILE=~/Descargas/client_secret.json
+CALENDAR_ALARM_GOOGLE_CLIENT_FILE=client_secret.json uv run calendar-alarm
 ```
 
-También se admite, si lo prefieres, un
-`src/calendar_alarm/assets/google_client.json`. Si no hay credenciales por
-ninguna vía, el script de empaquetado avisa y el botón de la app muestra un
-error: la build se genera, pero no podrá conectar con Google.
+Si no hay credenciales por ninguna vía, el script de empaquetado avisa y el
+botón de la app muestra un error: la build se genera, pero no podrá conectar
+con Google.
 
 > Google trata el secreto de un cliente de *Aplicación de escritorio* como no
 > confidencial (viaja en el binario). No uses credenciales de tipo
@@ -293,12 +299,13 @@ El `.gitignore` ya excluye `.venv/`, `build/`, `dist/`, cachés y credenciales
 (`token.json`, `client_secret*.json`, `google_client.json`). **Nunca subas
 `token.json`**: contiene los tokens de acceso de la cuenta conectada.
 
-El `client_id`/`client_secret` de la app **no está en el repositorio**: se pasa
-al compilar por variables de entorno o mediante los secrets del CI (sección 5).
-Si prefieres rellenar las constantes de `src/calendar_alarm/oauth_client.py`,
-ten en cuenta que entonces sí quedarán visibles en GitHub. Aun así, para un
-cliente de *Aplicación de escritorio* Google no lo considera confidencial; lo
-que nunca debe publicarse es un secreto de tipo «Aplicación web».
+El `client_id`/`client_secret` de la app **no está en el repositorio**: vive en
+`client_secret.json` (ignorado por git) o se pasa al compilar por variables de
+entorno / secrets del CI (sección 5). Si rellenas las constantes de
+`src/calendar_alarm/oauth_client.py`, ten en cuenta que entonces sí quedarán
+visibles en GitHub. Aun así, para un cliente de *Aplicación de escritorio*
+Google no lo considera confidencial; lo que nunca debe publicarse es un secreto
+de tipo «Aplicación web».
 
 Para publicar una versión con binarios:
 
