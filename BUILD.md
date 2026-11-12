@@ -12,6 +12,17 @@ google-api-python-client…) y los recursos (sonido de alarma e iconos).
 | **Linux**                        | `dist/calendar-alarm` (binario único)         |
 | **macOS**                        | `dist/Calendar Alarm.app` + `dist/CalendarAlarm.dmg` |
 
+### Resumen: generar y arrancar el ejecutable
+
+Desde la raíz del proyecto (necesitas uv o un Python 3.11–3.13; detalles en el
+apartado 2):
+
+| Sistema | Generar el ejecutable | Arrancarlo |
+|---|---|---|
+| **Windows** (PowerShell/CMD) | `py packaging\build.py` | `.\dist\CalendarAlarm.exe` (o doble clic) |
+| **Linux** | `python3 packaging/build.py` | `./dist/calendar-alarm` |
+| **macOS** | `python3 packaging/build.py` | `open "dist/Calendar Alarm.app"` (o doble clic; para instalar, `open dist/CalendarAlarm.dmg` y arrastrar a Aplicaciones) |
+
 > El ejecutable **no requiere Python instalado** en el equipo de destino.
 > No se puede compilar para Windows desde Linux ni para macOS desde Windows:
 > cada artefacto debe generarse en su propio sistema (o con el workflow de CI
@@ -245,7 +256,8 @@ El heredoc sin comillas expande `$HOME`, así que `Exec` queda con la ruta
 absoluta que exige el formato `.desktop`.
 
 El primer arranque abre la configuración: pulsa **Conectar con Google** (se
-abre el navegador), elige la cuenta y autoriza el acceso de solo lectura; luego
+abre el navegador), elige la cuenta y autoriza el acceso de solo lectura (si
+algo falla en el navegador, **Cancelar** permite reintentar al momento); luego
 ajusta el margen de aviso. Los datos de sesión se guardan en el directorio de
 configuración del sistema (`~/.config/CalendarAlarm/`,
 `%APPDATA%\CalendarAlarm\` o `~/Library/Application Support/CalendarAlarm/`).

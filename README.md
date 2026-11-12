@@ -138,7 +138,9 @@ uv run calendar-alarm
 ```
 
 1. Pulsa **Conectar con Google** (se abre el navegador) y autoriza el acceso
-   de solo lectura a tu calendario.
+   de solo lectura a tu calendario. Mientras espera aparece un botón
+   **Cancelar**: úsalo si Google muestra un error o cierras la pestaña, para
+   volver a intentarlo sin esperar.
 2. Define el margen de aviso en **horas** y **minutos** (por defecto 0 h 5 min):
    es el tiempo **antes** del inicio del evento en el que arrancará la alarma.
 3. Elige tu sonido (o deja el incluido) y pulsa **Probar** si quieres.
@@ -252,8 +254,11 @@ CalendarWorker (hilo) ──events──▶ AlarmController ──señales──
 - **"Sin dispositivo de audio"**: la alarma visual seguirá funcionando;
   revisa que haya un servidor de sonido (PulseAudio/PipeWire, WASAPI, CoreAudio).
 - **El navegador no se abre al autenticar**: si lanzaste la app desde una
-  terminal (`uv run calendar-alarm`), allí aparece la URL; ábrela a mano. La
-  espera de autorización caduca a los 5 minutos: vuelve a pulsar el botón.
+  terminal (`uv run calendar-alarm`), allí aparece la URL; ábrela a mano.
+- **Google muestra un error en el navegador o la conexión se queda esperando**:
+  pulsa **Cancelar** junto al botón de conexión y vuelve a intentarlo. Si no
+  haces nada, la espera se cancela sola a los 5 minutos. Si deniegas el
+  permiso en Google, la app lo indica al momento.
 - **«La sesión de Google ha caducado o se ha revocado»**: Google ya no acepta
   el token guardado (contraseña cambiada, acceso retirado…). Pulsa
   **Cambiar de cuenta** para volver a conectar.

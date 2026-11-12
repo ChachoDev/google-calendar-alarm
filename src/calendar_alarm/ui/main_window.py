@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal
@@ -20,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from calendar_alarm.audio import AudioPlayer
-from calendar_alarm.auth import GoogleAuth, GoogleAuthError
+from calendar_alarm.auth import GoogleAuth, GoogleAuthError, SignInCancelled
 from calendar_alarm.config import Config, default_sound_path, save_config
 from calendar_alarm.oauth_client import is_configured
 from calendar_alarm.ui.icons import bell_icon
@@ -40,14 +41,22 @@ class SignInWorker(QThread):
 
     succeeded = Signal(str)  # correo conectado
     failed = Signal(str)
+    cancelled = Signal()
 
     def __init__(self, auth: GoogleAuth, parent=None) -> None:
         super().__init__(parent)
         self._auth = auth
+        self._cancel = threading.Event()
+
+    def cancel(self) -> None:
+        """Interrumpe la espera de autorización (termina en menos de 1 s)."""
+        self._cancel.set()
 
     def run(self) -> None:
         try:
-            email = self._auth.sign_in(select_account=True)
+            email = self._auth.sign_in(select_account=True, cancel=self._cancel)
+        except SignInCancelled:
+            self.cancelled.emit()
         except GoogleAuthError as exc:
             self.failed.emit(str(exc))
         except Exception as exc:  # errores de red u otros
@@ -162,6 +171,16 @@ class MainWindow(QWidget):
         self._btn_logout.clicked.connect(self._on_sign_out)
         self._btn_logout.hide()
         actions.addWidget(self._btn_logout)
+
+        # Solo visible mientras se espera la autorización en el navegador: si
+        # Google muestra un error o el usuario cierra la pestaña, no hay que
+        # esperar a que caduque la espera.
+        self._btn_cancel = QPushButton("Cancelar")
+        self._btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._btn_cancel.setToolTip("Deja de esperar la autorización en el navegador")
+        self._btn_cancel.clicked.connect(self._on_cancel_sign_in)
+        self._btn_cancel.hide()
+        actions.addWidget(self._btn_cancel)
         actions.addStretch(1)
         layout.addLayout(actions)
 
@@ -287,6 +306,8 @@ class MainWindow(QWidget):
     def _set_sign_in_busy(self, busy: bool, message: str = "") -> None:
         for btn in (self._btn_connect, self._btn_change, self._btn_logout):
             btn.setEnabled(not busy)
+        self._btn_cancel.setEnabled(True)
+        self._btn_cancel.setVisible(busy)
         if busy:
             self._auth_status.setText(f"●  {message or 'Esperando autorización…'}")
             self._auth_status.setObjectName("status-warn")
@@ -307,7 +328,21 @@ class MainWindow(QWidget):
         self._sign_in_worker = SignInWorker(self.auth, self)
         self._sign_in_worker.succeeded.connect(self._on_sign_in_ok)
         self._sign_in_worker.failed.connect(self._on_sign_in_failed)
+        self._sign_in_worker.cancelled.connect(self._on_sign_in_cancelled)
         self._sign_in_worker.start()
+
+    def _on_cancel_sign_in(self) -> None:
+        worker = self._sign_in_worker
+        if worker is None:
+            return
+        self._btn_cancel.setEnabled(False)
+        self._auth_status.setText("●  Cancelando…")
+        worker.cancel()
+
+    def _on_sign_in_cancelled(self) -> None:
+        self._sign_in_worker = None
+        self.refresh_auth_state()
+        self.show_events_status("Conexión con Google cancelada.")
 
     def _on_sign_in_ok(self, email: str) -> None:
         self._sign_in_worker = None
@@ -399,8 +434,11 @@ class MainWindow(QWidget):
         """Al salir: no dejar el hilo de autenticación vivo (Qt abortaría)."""
         worker = self._sign_in_worker
         if worker is not None and worker.isRunning():
-            worker.terminate()
-            worker.wait(2000)
+            worker.cancel()
+            if not worker.wait(3000):
+                # Solo si está atascado intercambiando el código con Google.
+                worker.terminate()
+                worker.wait(1000)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         # La ventana se oculta; la aplicación sigue viva en la bandeja.

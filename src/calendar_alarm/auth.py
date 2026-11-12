@@ -4,12 +4,49 @@ import base64
 import json
 import os
 import threading
+import time
+import webbrowser
+import wsgiref.simple_server
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+
+try:
+    # Clases internas que usa ``InstalledAppFlow.run_local_server``: el
+    # servidor reserva el puerto en exclusiva (Windows) y también ``::1``, y el
+    # manejador no escribe en la consola. Si cambian, se usa wsgiref tal cual.
+    from google_auth_oauthlib.flow import (  # type: ignore[attr-defined]
+        _ExclusiveWSGIServer as _LocalServer,
+    )
+    from google_auth_oauthlib.flow import (  # type: ignore[attr-defined]
+        _RedirectWSGIApp as _RedirectApp,
+    )
+    from google_auth_oauthlib.flow import (  # type: ignore[attr-defined]
+        _WSGIRequestHandler as _RequestHandler,
+    )
+except ImportError:  # pragma: no cover - depende de la versión de la librería
+    _LocalServer = wsgiref.simple_server.WSGIServer
+
+    class _RequestHandler(wsgiref.simple_server.WSGIRequestHandler):
+        def log_message(self, *args) -> None:
+            pass
+
+    class _RedirectApp:
+        def __init__(self, success_message: str) -> None:
+            self.last_request_uri: str | None = None
+            self._success_message = success_message
+
+        def __call__(self, environ, start_response):
+            import wsgiref.util
+
+            start_response("200 OK", [("Content-type", "text/plain; charset=utf-8")])
+            self.last_request_uri = wsgiref.util.request_uri(environ)
+            return [self._success_message.encode("utf-8")]
+
 
 from calendar_alarm.oauth_client import client_config
 
@@ -29,11 +66,20 @@ os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
 
 # Tiempo máximo esperando a que el usuario autorice en el navegador. Sin límite,
 # cerrar la pestaña dejaría el servidor local (y el hilo) esperando para siempre.
+# El usuario también puede cancelar antes desde la interfaz.
 SIGN_IN_TIMEOUT_SECONDS = 300
+# Cada cuánto se comprueba si el usuario ha cancelado mientras se espera.
+_POLL_SECONDS = 0.25
+
+_SUCCESS_MESSAGE = "Calendar Alarm ya tiene acceso a tu calendario. Puedes cerrar esta ventana."
 
 
 class GoogleAuthError(RuntimeError):
     """Error controlado en el flujo de autenticación con Google."""
+
+
+class SignInCancelled(GoogleAuthError):
+    """El usuario canceló la autorización desde la aplicación."""
 
 
 class GoogleAuth:
@@ -111,13 +157,21 @@ class GoogleAuth:
         return creds if creds.valid else None
 
     # ------------------------------------------------------------- acciones
-    def sign_in(self, *, select_account: bool = True) -> str | None:
+    def sign_in(
+        self,
+        *,
+        select_account: bool = True,
+        cancel: threading.Event | None = None,
+    ) -> str | None:
         """Abre el navegador para autenticarse. Devuelve el correo conectado.
 
         `select_account=True` fuerza el selector de cuentas de Google, lo que
         permite autenticarse con otra cuenta distinta de la actual. Las
         credenciales del cliente OAuth van incluidas en la aplicación
         (ver `calendar_alarm.oauth_client`).
+
+        Si se activa `cancel`, la espera termina en menos de un segundo con
+        `SignInCancelled`.
         """
         config = client_config()
         if config is None:
@@ -127,27 +181,13 @@ class GoogleAuth:
             )
         try:
             flow = InstalledAppFlow.from_client_config(config, SCOPES)
-            kwargs: dict[str, object] = {
-                "port": 0,
-                "open_browser": True,
-                "timeout_seconds": SIGN_IN_TIMEOUT_SECONDS,
-            }
-            if select_account:
-                # «consent» obliga a mostrar la pantalla de permisos (así el
-                # usuario puede marcar Google Calendar aunque ya hubiera
-                # autorizado la cuenta antes); «select_account» permite elegir
-                # otra cuenta.
-                kwargs["prompt"] = "consent select_account"
-            creds = flow.run_local_server(**kwargs)  # type: ignore[arg-type]
+            # «consent» obliga a mostrar la pantalla de permisos (así el
+            # usuario puede marcar Google Calendar aunque ya hubiera autorizado
+            # la cuenta antes); «select_account» permite elegir otra cuenta.
+            prompt = "consent select_account" if select_account else None
+            creds = _run_local_flow(flow, prompt=prompt, cancel=cancel or threading.Event())
         except GoogleAuthError:
             raise
-        except AttributeError as exc:
-            # Al agotarse el tiempo, el servidor local no recibe la respuesta
-            # de Google y la librería falla al leer una URI inexistente.
-            raise GoogleAuthError(
-                "No se completó la autorización en el navegador a tiempo. "
-                "Vuelve a pulsar «Conectar con Google»."
-            ) from exc
         except Exception as exc:
             raise GoogleAuthError(f"Error al autenticar con Google: {exc}") from exc
 
@@ -186,3 +226,52 @@ def _email_from_credentials(creds: Credentials) -> str | None:
         return data.get("email")
     except Exception:
         return None
+
+
+def _run_local_flow(
+    flow: InstalledAppFlow, *, prompt: str | None, cancel: threading.Event
+) -> Credentials:
+    """Equivalente a ``flow.run_local_server`` pero cancelable.
+
+    La librería bloquea en una única espera de hasta ``timeout_seconds`` sin
+    forma de interrumpirla. Aquí se atiende el servidor local en intervalos
+    cortos para poder salir en cuanto el usuario cancela.
+    """
+    redirect = _RedirectApp(_SUCCESS_MESSAGE)
+    server = wsgiref.simple_server.make_server(
+        "localhost", 0, redirect, server_class=_LocalServer, handler_class=_RequestHandler
+    )
+    try:
+        server.timeout = _POLL_SECONDS
+        flow.redirect_uri = f"http://localhost:{server.server_port}/"
+        extra = {"prompt": prompt} if prompt else {}
+        auth_url, _ = flow.authorization_url(**extra)
+        webbrowser.open(auth_url, new=1, autoraise=True)
+
+        deadline = time.monotonic() + SIGN_IN_TIMEOUT_SECONDS
+        while redirect.last_request_uri is None:
+            if cancel.is_set():
+                raise SignInCancelled("Conexión con Google cancelada.")
+            if time.monotonic() > deadline:
+                raise GoogleAuthError(
+                    "No se completó la autorización en el navegador a tiempo. "
+                    "Vuelve a pulsar «Conectar con Google»."
+                )
+            server.handle_request()
+        response_uri = redirect.last_request_uri
+    finally:
+        server.server_close()
+
+    if cancel.is_set():
+        raise SignInCancelled("Conexión con Google cancelada.")
+
+    error = parse_qs(urlsplit(response_uri).query).get("error", [""])[0]
+    if error == "access_denied":
+        raise GoogleAuthError("Has denegado el acceso en Google. No se ha conectado la cuenta.")
+    if error:
+        raise GoogleAuthError(f"Google rechazó la autorización: {error}")
+
+    # oauthlib exige https aunque la redirección local sea http (igual que la
+    # propia librería en run_local_server).
+    flow.fetch_token(authorization_response=response_uri.replace("http", "https", 1))
+    return flow.credentials  # type: ignore[return-value]
