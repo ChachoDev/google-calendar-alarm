@@ -33,6 +33,7 @@ Opciones:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -140,8 +141,66 @@ def clean(previous: bool) -> None:
         shutil.rmtree(path, ignore_errors=True)
 
 
-def warn_missing_google_client(python: Path) -> None:
-    """Avisa si el ejecutable se va a compilar sin credenciales de Google."""
+def _installed_assets_dir(python: Path) -> Path | None:
+    """Directorio de recursos del paquete instalado en el entorno de build."""
+    probe = subprocess.run(
+        [
+            python,
+            "-c",
+            (
+                "import calendar_alarm, pathlib; "
+                "print(pathlib.Path(calendar_alarm.__file__).parent / 'assets')"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if probe.returncode != 0:
+        return None
+    return Path(probe.stdout.strip())
+
+
+def prepare_google_client(python: Path) -> None:
+    """Inyecta las credenciales OAuth solo en el binario, nunca en el repo.
+
+    Si existen ``CALENDAR_ALARM_GOOGLE_CLIENT_ID`` y
+    ``CALENDAR_ALARM_GOOGLE_CLIENT_SECRET`` en el entorno, se escriben como
+    recurso del paquete instalado (``.../site-packages/calendar_alarm/assets``)
+    para que PyInstaller las empaquete. El código fuente y el repositorio
+    quedan limpios.
+    """
+    client_id = os.environ.get("CALENDAR_ALARM_GOOGLE_CLIENT_ID", "").strip()
+    client_secret = os.environ.get("CALENDAR_ALARM_GOOGLE_CLIENT_SECRET", "").strip()
+
+    assets = _installed_assets_dir(python)
+    if assets is None:
+        fail("No se pudo localizar el paquete calendar_alarm en el entorno de build.")
+    assets.mkdir(parents=True, exist_ok=True)
+    installed_client = assets / "google_client.json"
+    # Evita reutilizar credenciales inyectadas en una build anterior
+    # (importante con --no-clean).
+    installed_client.unlink(missing_ok=True)
+
+    if client_id and client_secret:
+        config = {
+            "installed": {
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        }
+        installed_client.write_text(json.dumps(config, indent=2), encoding="utf-8")
+        print("    Credenciales OAuth inyectadas desde el entorno", flush=True)
+        return
+
+    source_client = ROOT / "src" / "calendar_alarm" / "assets" / "google_client.json"
+    if source_client.is_file():
+        shutil.copyfile(source_client, installed_client)
+        print("    Credenciales OAuth tomadas de assets/google_client.json", flush=True)
+        return
+
     env = {
         key: value
         for key, value in os.environ.items()
@@ -163,7 +222,8 @@ def warn_missing_google_client(python: Path) -> None:
     print(
         "\nADVERTENCIA: la app se compilará sin credenciales de Google.\n"
         "  El botón «Conectar con Google» no podrá abrir el navegador.\n"
-        "  Rellena CLIENT_ID y CLIENT_SECRET en\n"
+        "  Define CALENDAR_ALARM_GOOGLE_CLIENT_ID y\n"
+        "  CALENDAR_ALARM_GOOGLE_CLIENT_SECRET, o rellena las constantes de\n"
         "  src/calendar_alarm/oauth_client.py (ver BUILD.md).",
         flush=True,
     )
@@ -346,7 +406,7 @@ def main() -> int:
     print(f"    uv: {uv or 'no encontrado (se usará venv + pip del sistema)'}")
     clean(not args.no_clean)
     python = prepare_build_environment(args.python)
-    warn_missing_google_client(python)
+    prepare_google_client(python)
     generate_icons(python)
 
     log("Construyendo el ejecutable con PyInstaller")

@@ -98,18 +98,25 @@ seleccionar ningún `client_secret.json`.
    email de soporte y tu cuenta como **usuario de prueba** (hasta 100 mientras
    la app no esté verificada).
 5. **Credenciales → Crear credenciales → ID de cliente de OAuth**, tipo
-   **Aplicación de escritorio**. Descarga el JSON y abre el `client_id` y el
+   **Aplicación de escritorio**. Descarga el JSON y toma su `client_id` y
    `client_secret`.
-6. Pega esos dos valores **una sola vez** en
-   `src/calendar_alarm/oauth_client.py`:
 
-```python
-CLIENT_ID = "1234567890-abc.apps.googleusercontent.com"
-CLIENT_SECRET = "GOCSPX-..."
+**No los subas al repositorio.** Pásalos al compilar y el script los inyecta
+solo en el binario:
+
+```bash
+export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=GOCSPX-...
+python3 packaging/build.py
 ```
 
-No hace falta ningún archivo: los valores quedan dentro del código y del
-ejecutable. Alternativa para desarrollo, sin tocar el código:
+El código fuente y git quedan limpios: las credenciales acaban únicamente en
+`build/build-env/` (y por tanto dentro del ejecutable). Si prefieres tenerlas
+en el código para uso local, rellena las constantes `CLIENT_ID` y
+`CLIENT_SECRET` de `src/calendar_alarm/oauth_client.py`, pero entonces sí
+estarán en el repo.
+
+Alternativa para desarrollo, sin compilar:
 
 ```bash
 export CALENDAR_ALARM_GOOGLE_CLIENT_FILE=~/Descargas/client_secret.json
@@ -118,8 +125,8 @@ export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
 export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=...
 ```
 
-Si no hay credenciales, el botón muestra un aviso y el build avisa de que el
-ejecutable no podrá conectarse.
+Si no hay credenciales por ninguna vía, el botón muestra un aviso y el build
+avisa de que el ejecutable no podrá conectarse.
 
 > **No** uses credenciales de tipo «Aplicación web»: su secreto sí es
 > confidencial y no debe distribuirse. El `token.json` de cada usuario se

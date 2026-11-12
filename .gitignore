@@ -19,4 +19,5 @@ Thumbs.db
 desktop.ini
 # Credenciales sensibles: nunca subir estos archivos
 client_secret*.json
+google_client.json
 token.json

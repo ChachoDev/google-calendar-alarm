@@ -48,16 +48,24 @@ ejecutable. Regístralas **una sola vez**:
 3. **Credenciales → Crear credenciales → ID de cliente de OAuth → Aplicación
    de escritorio**. Descarga el JSON.
 4. Copia `client_id` y `client_secret` en las constantes `CLIENT_ID` y
-   `CLIENT_SECRET` de `src/calendar_alarm/oauth_client.py`. No hace falta
-   ningún archivo externo: quedan dentro del código y del binario.
+   `CLIENT_SECRET` de `src/calendar_alarm/oauth_client.py` **o**, si el
+   repositorio es público, déjalas vacías y pásalas al compilar (recomendado):
 
-Alternativas para desarrollo, sin tocar el código:
+```bash
+export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=GOCSPX-...
+python3 packaging/build.py
+```
+
+El script escribe las credenciales **solo** en el paquete instalado dentro de
+`build/build-env/`, así que acaban dentro del ejecutable pero nunca en el
+código ni en git. En GitHub Actions se leen de los secrets del repositorio
+(`GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`).
+
+Alternativa para desarrollo, sin tocar el código ni compilar:
 
 ```bash
 export CALENDAR_ALARM_GOOGLE_CLIENT_FILE=~/Descargas/client_secret.json
-# o
-export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
-export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=...
 ```
 
 También se admite, si lo prefieres, un
@@ -235,10 +243,13 @@ lanzarlo a mano desde **Actions → Build executables → Run workflow**) compil
 Ubuntu, Windows y macOS y publica los artefactos descargables:
 
 1. Sube el proyecto a GitHub (ver sección 7).
-2. **Actions → Build executables → Run workflow**.
-3. Al terminar, descarga los artefactos de la ejecución
+2. En **Settings → Secrets and variables → Actions**, crea los secrets
+   `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`. Así los binarios se compilan con
+   las credenciales sin que estén en el repositorio.
+3. **Actions → Build executables → Run workflow**.
+4. Al terminar, descarga los artefactos de la ejecución
    (`calendar-alarm-linux`, `-windows`, `-macos`).
-4. Si haces `git push origin v1.0.0`, además se crea una **Release** con los
+5. Si haces `git push origin v1.0.0`, además se crea una **Release** con los
    binarios adjuntos.
 
 ---
@@ -278,8 +289,16 @@ git remote add origin https://github.com/TU-USUARIO/calendar-alarm.git
 git push -u origin main
 ```
 
-El `.gitignore` ya excluye `.venv/`, `build/`, `dist/`, cachés y las
-credenciales personales (`token.json`). **Nunca subas ese archivo.**
+El `.gitignore` ya excluye `.venv/`, `build/`, `dist/`, cachés y credenciales
+(`token.json`, `client_secret*.json`, `google_client.json`). **Nunca subas
+`token.json`**: contiene los tokens de acceso de la cuenta conectada.
+
+El `client_id`/`client_secret` de la app **no está en el repositorio**: se pasa
+al compilar por variables de entorno o mediante los secrets del CI (sección 5).
+Si prefieres rellenar las constantes de `src/calendar_alarm/oauth_client.py`,
+ten en cuenta que entonces sí quedarán visibles en GitHub. Aun así, para un
+cliente de *Aplicación de escritorio* Google no lo considera confidencial; lo
+que nunca debe publicarse es un secreto de tipo «Aplicación web».
 
 Para publicar una versión con binarios:
 
