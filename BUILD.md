@@ -280,6 +280,12 @@ Ubuntu, Windows y macOS y publica los artefactos descargables:
 5. Si haces `git push origin v1.0.0`, además se crea una **Release** con los
    binarios adjuntos.
 
+Además, `.github/workflows/tests.yml` pasa ruff, todos los tests (unitarios,
+interfaz, integración y empaquetado) y la prueba de humo en los tres sistemas
+en cada push y pull request. Los tests de empaquetado comprueban la lógica de
+`build.py` para Windows, Linux y macOS sin necesidad de compilar. Detalles en el
+apartado «Tests» del [README](README.md).
+
 ---
 
 ## 6. Notas importantes de distribución

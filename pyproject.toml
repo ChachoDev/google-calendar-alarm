@@ -58,4 +58,42 @@ ignore = [
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.14"]
+dev = [
+    "mutmut>=3.8.1 ; sys_platform != 'win32'",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "pytest-qt>=4.5.0",
+    "ruff>=0.14",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+qt_api = "pyside6"
+markers = [
+    "integration: prueba que arranca la aplicación completa",
+]
+
+[tool.coverage.run]
+source = ["calendar_alarm"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.mutmut]
+# Tests de mutación: se muta solo la lógica (sin Qt Widgets), que es donde un
+# cambio sutil (<= por <, + por -, True por False...) debe hacer fallar algún
+# test. La interfaz se cubre con los tests de tests/ui.
+paths_to_mutate = ["src/calendar_alarm/"]
+do_not_mutate = [
+    "*/ui/*",
+    "*/app.py",
+    "*/workers.py",
+    "*/__main__.py",
+    "*/__init__.py",
+]
+tests_dir = ["tests/unit/"]
+pytest_add_cli_args_test_selection = ["tests/unit/"]
+also_copy = ["tests/", "packaging/"]

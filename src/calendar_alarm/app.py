@@ -27,7 +27,8 @@ class CalendarAlarmApp:
         # La bandeja mantiene la aplicación viva aunque se cierren las ventanas
         QApplication.setQuitOnLastWindowClosed(False)
 
-        self.app = QApplication(sys.argv)
+        # Reutiliza la instancia si ya existe (p. ej. en los tests).
+        self.app = QApplication.instance() or QApplication(sys.argv)
         # app_id estable en Wayland (Hyprland, sway…): sin esto Qt lo deriva
         # del nombre del ejecutable y cambia entre desarrollo y empaquetado.
         self._quit_watcher = QuitWatcher(self.app)

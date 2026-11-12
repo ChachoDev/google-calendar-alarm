@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent, QFontMetrics
 from PySide6.QtWidgets import (
     QComboBox,
@@ -27,6 +27,7 @@ from calendar_alarm.oauth_client import is_configured
 from calendar_alarm.ui.icons import bell_icon
 from calendar_alarm.ui.theme import APP_QSS
 from calendar_alarm.ui.util import fit_to_screen, is_quitting
+from calendar_alarm.workers import BackgroundThread
 
 SOUND_FILTER = (
     "Archivos de sonido (*.wav *.mp3 *.ogg *.flac);;"
@@ -36,7 +37,7 @@ SOUND_FILTER = (
 POLL_CHOICES = [30, 60, 120, 300]
 
 
-class SignInWorker(QThread):
+class SignInWorker(BackgroundThread):
     """Ejecuta el flujo OAuth (servidor local + navegador) fuera del hilo de UI."""
 
     succeeded = Signal(str)  # correo conectado
@@ -435,10 +436,9 @@ class MainWindow(QWidget):
         worker = self._sign_in_worker
         if worker is not None and worker.isRunning():
             worker.cancel()
-            if not worker.wait(3000):
-                # Solo si está atascado intercambiando el código con Google.
-                worker.terminate()
-                worker.wait(1000)
+            # Si estuviera atascado canjeando el código con Google, el hilo
+            # (daemon) se abandona: no bloquea la salida.
+            worker.wait(3000)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         # La ventana se oculta; la aplicación sigue viva en la bandeja.

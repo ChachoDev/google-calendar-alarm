@@ -72,7 +72,8 @@ def _parse_event(item: dict) -> CalendarEvent | None:
 
 
 def _to_local(value: str) -> datetime:
-    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    # Desde Python 3.11 fromisoformat entiende el sufijo «Z» (UTC).
+    dt = datetime.fromisoformat(value)
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone()

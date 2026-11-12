@@ -126,7 +126,8 @@ def main() -> int:
 
     from PySide6.QtGui import QGuiApplication
 
-    app = QGuiApplication(sys.argv[:1])  # noqa: F841 - necesario para QPixmap
+    # Necesaria para QPixmap; se reutiliza si ya existe (tests).
+    app = QGuiApplication.instance() or QGuiApplication(sys.argv[:1])  # noqa: F841
 
     pngs: dict[int, bytes] = {}
     for size in PNG_SIZES:

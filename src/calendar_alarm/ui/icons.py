@@ -21,7 +21,9 @@ def bell_pixmap(color: str = "#3b82f6", size: int = 64) -> QPixmap:
     # Cuerpo de la campana (semicírculo superior + base recta redondeada)
     body = QPainterPath()
     body.moveTo(cx - r, cy)
-    body.arcTo(QRectF(cx - r, cy - r, 2 * r, 2 * r), 180, 180)
+    # Barrido negativo (sentido horario en Qt): de las 9 a las 3 pasando por
+    # arriba. Con +180 la cúpula salía hacia abajo, como una taza.
+    body.arcTo(QRectF(cx - r, cy - r, 2 * r, 2 * r), 180, -180)
     body.lineTo(cx + r, cy + r * 0.7)
     body.quadTo(cx + r, cy + r, cx + r * 0.78, cy + r)
     body.lineTo(cx - r * 0.78, cy + r)

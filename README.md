@@ -42,14 +42,51 @@ uv sync
 ```
 
 `uv sync` crea el entorno virtual, instala la aplicación en modo editable y las
-dependencias de desarrollo (ruff) del grupo `dev`.
+dependencias de desarrollo del grupo `dev` (ruff, pytest, pytest-qt,
+pytest-cov y mutmut).
 
 Calidad de código:
 
 ```bash
-uv run ruff check src scripts
-uv run ruff format src scripts
+uv run ruff check src tests scripts packaging
+uv run ruff format src tests scripts packaging
 ```
+
+## Tests
+
+```bash
+uv run pytest                 # toda la suite (~10 s)
+uv run pytest --cov           # con informe de cobertura
+uv run mutmut run             # tests de mutación (Linux/macOS, ~20 s)
+uv run mutmut results         # mutantes que sobreviven
+```
+
+No necesitan red, cuenta de Google, pantalla ni tarjeta de sonido: Qt corre en
+modo `offscreen`, pygame con el driver de audio `dummy`, y cada test usa una
+carpeta de configuración temporal (nunca toca tu `config.json` ni tu
+`token.json`).
+
+| Tipo | Dónde | Qué comprueba |
+|---|---|---|
+| **Unitarios** | `tests/unit/` | Lógica sin interfaz: cuándo suena la alarma (límites exactos del margen y de la tolerancia), configuración, parseo de eventos de Google, credenciales OAuth, sesión y renovación del token, flujo de autorización (incluida la cancelación y el tiempo límite) y audio. |
+| **Interfaz** | `tests/ui/` | Ventana principal (botón **Cancelar**, ajustes, sonido), ventana de alarma, bandeja, icono e integración con Hyprland, con Qt sin pantalla. |
+| **Integración** | `tests/ui/test_app.py` | La app completa: alarma de principio a fin, parada desde la bandeja y salidas (**Salir**, ⌘Q/Dock, guardado de la configuración), cada salida en su propio proceso (`tests/ui/quit_scenarios.py`). |
+| **Empaquetado** | `tests/packaging/` | `build.py` para Windows, Linux y macOS (opciones de PyInstaller, búsqueda de Python y del lanzador `py`, uv/pip, credenciales, reintentos de `hdiutil`), iconos ICO/ICNS y el punto de entrada sin consola. |
+| **Mutación** | `mutmut` | Introduce cambios pequeños en la lógica (`<=` por `<`, `True` por `False`, otro texto…) y comprueba que algún test falla. Resultado actual: 558 de 582 mutantes detectados (96 %). |
+| **Humo** | `scripts/smoke_test.py` | Arranque real, alarma y salida, como script independiente. |
+
+Los 24 mutantes que sobreviven no cambian el comportamiento observable en
+macOS/Linux: codificación `"utf-8"` frente a `"UTF-8"` o la predeterminada
+(UTF-8 en estos sistemas; en Windows los detecta el test con «música» y «ñ»),
+`unlink(missing_ok=False)` dentro de un `except OSError`, relleno base64 que el
+decodificador tolera, `>` frente a `>=` en el tiempo límite, la ruta alternativa
+de `asset_path` (idéntica en desarrollo) y valores iniciales `None` frente a
+`""` que nunca se leen.
+
+El workflow `.github/workflows/tests.yml` ejecuta ruff, la suite y la prueba de
+humo en **Linux, Windows y macOS** en cada push y pull request; los tests de
+mutación se lanzan a mano (**Actions → Tests → Run workflow** marcando
+«mutation»).
 
 ## Ejecutable nativo (Windows / Linux / macOS)
 
@@ -203,6 +240,9 @@ En i3/sway no se hace ninguna integración automática: usa la regla
 | `config.json`           | Linux `~/.config/CalendarAlarm/` · Windows `%APPDATA%\CalendarAlarm\` · macOS `~/Library/Application Support/CalendarAlarm/` |
 | `token.json` (sesión)   | Mismo directorio que `config.json`                        |
 
+La variable `CALENDAR_ALARM_CONFIG_DIR` cambia ese directorio (la usan los tests;
+también sirve para tener perfiles separados).
+
 ## Arquitectura
 
 Separación estricta entre lógica de alarma y presentación:
@@ -214,7 +254,7 @@ src/calendar_alarm/
 ├── auth.py              # Sesión Google (conectar/desconectar/cambiar cuenta)
 ├── oauth_client.py      # Credenciales OAuth incluidas (sin client_secret.json)
 ├── calendar_service.py  # Consulta a Google Calendar API (+ caché del cliente)
-├── workers.py           # Hilo de fondo (QThread) de consultas periódicas
+├── workers.py           # Hilos de fondo (daemon) que nunca bloquean la salida
 ├── alarm_controller.py  # Lógica de alarmas (sin UI): decide cuándo suena
 ├── audio.py             # Reproducción en bucle con pygame (no bloqueante)
 ├── app.py               # Composición: une lógica y presentación

@@ -7,11 +7,15 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 import wave
 from datetime import datetime, timedelta
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
+# Configuración temporal: la prueba no toca la configuración ni el token reales.
+os.environ["CALENDAR_ALARM_CONFIG_DIR"] = tempfile.mkdtemp(prefix="calendar-alarm-smoke-")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 

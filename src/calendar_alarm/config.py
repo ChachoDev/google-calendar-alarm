@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, dataclass, fields
 from datetime import timedelta
 from pathlib import Path
@@ -10,9 +11,16 @@ from platformdirs import user_config_path
 APP_NAME = "CalendarAlarm"
 
 
+CONFIG_DIR_ENV = "CALENDAR_ALARM_CONFIG_DIR"
+
+
 def config_dir() -> Path:
-    """Directorio de configuración según plataforma (~/.config, %APPDATA%, ~/Library...)."""
-    path = user_config_path(APP_NAME, appauthor=False)
+    """Directorio de configuración según plataforma (~/.config, %APPDATA%, ~/Library...).
+
+    ``CALENDAR_ALARM_CONFIG_DIR`` lo sustituye (tests, perfiles separados).
+    """
+    override = os.environ.get(CONFIG_DIR_ENV, "").strip()
+    path = Path(override).expanduser() if override else user_config_path(APP_NAME, appauthor=False)
     path.mkdir(parents=True, exist_ok=True)
     return path
 

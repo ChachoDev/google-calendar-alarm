@@ -21,3 +21,8 @@ desktop.ini
 client_secret*.json
 google_client.json
 token.json
+
+# Tests de mutación (mutmut) y cobertura
+mutants/
+.coverage
+htmlcov/
