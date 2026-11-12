@@ -317,6 +317,12 @@ CalendarWorker (hilo) ──events──▶ AlarmController ──señales──
 - **Linux (Wayland)**: la ventana de alarma usa `WindowStaysOnTopHint`;
   en gestores sin soporte puede no quedar siempre encima.
 
+## Contribuir
+
+Cómo preparar el entorno, pasar los tests y abrir un pull request:
+[CONTRIBUTING.md](CONTRIBUTING.md). Los cambios de cada versión están en
+[CHANGELOG.md](CHANGELOG.md).
+
 ## Licencia
 
 Este proyecto se distribuye bajo la licencia **MIT**. Consulta

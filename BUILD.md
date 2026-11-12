@@ -313,15 +313,17 @@ apartado «Tests» del [README](README.md).
 
 ## 7. Subir el proyecto a git
 
+El proyecto ya es un repositorio git. Crea un repositorio **vacío** en GitHub
+(sin README ni licencia, para no tener conflictos) y, desde la raíz del
+proyecto:
+
 ```bash
-cd /home/victor/alarm
-git init
-git add .
-git commit -m "Calendar Alarm: aplicación y empaquetado multiplataforma"
-git branch -M main
 git remote add origin https://github.com/TU-USUARIO/calendar-alarm.git
 git push -u origin main
 ```
+
+Al subirlo se ejecuta solo el workflow **Tests** en Linux, Windows y macOS.
+Antes de compilar con CI, crea los secrets de la sección 5.
 
 El `.gitignore` ya excluye `.venv/`, `build/`, `dist/`, cachés y credenciales
 (`token.json`, `client_secret*.json`, `google_client.json`). **Nunca subas
