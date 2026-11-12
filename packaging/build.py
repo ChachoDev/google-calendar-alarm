@@ -140,15 +140,31 @@ def clean(previous: bool) -> None:
         shutil.rmtree(path, ignore_errors=True)
 
 
-def warn_missing_google_client() -> None:
+def warn_missing_google_client(python: Path) -> None:
     """Avisa si el ejecutable se va a compilar sin credenciales de Google."""
-    client_file = ROOT / "src" / "calendar_alarm" / "assets" / "google_client.json"
-    if client_file.is_file():
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("CALENDAR_ALARM_GOOGLE")
+    }
+    probe = subprocess.run(
+        [
+            python,
+            "-c",
+            "from calendar_alarm.oauth_client import is_configured; print(is_configured())",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+    if probe.stdout.strip() == "True":
         return
     print(
-        "\nADVERTENCIA: no existe src/calendar_alarm/assets/google_client.json.\n"
-        "  El ejecutable se generará, pero el botón «Conectar con Google» no\n"
-        "  podrá abrir el navegador. Consulta «Cliente OAuth de Google» en BUILD.md.",
+        "\nADVERTENCIA: la app se compilará sin credenciales de Google.\n"
+        "  El botón «Conectar con Google» no podrá abrir el navegador.\n"
+        "  Rellena CLIENT_ID y CLIENT_SECRET en\n"
+        "  src/calendar_alarm/oauth_client.py (ver BUILD.md).",
         flush=True,
     )
 
@@ -329,8 +345,8 @@ def main() -> int:
     uv = find_uv()
     print(f"    uv: {uv or 'no encontrado (se usará venv + pip del sistema)'}")
     clean(not args.no_clean)
-    warn_missing_google_client()
     python = prepare_build_environment(args.python)
+    warn_missing_google_client(python)
     generate_icons(python)
 
     log("Construyendo el ejecutable con PyInstaller")

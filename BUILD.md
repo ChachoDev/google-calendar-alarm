@@ -47,10 +47,11 @@ ejecutable. Regístralas **una sola vez**:
    cuenta como **usuario de prueba**.
 3. **Credenciales → Crear credenciales → ID de cliente de OAuth → Aplicación
    de escritorio**. Descarga el JSON.
-4. Guárdalo como `src/calendar_alarm/assets/google_client.json`.
+4. Copia `client_id` y `client_secret` en las constantes `CLIENT_ID` y
+   `CLIENT_SECRET` de `src/calendar_alarm/oauth_client.py`. No hace falta
+   ningún archivo externo: quedan dentro del código y del binario.
 
-Se empaqueta automáticamente (`--collect-data calendar_alarm`) en Linux,
-Windows y macOS. Alternativas para desarrollo, sin copiar el archivo:
+Alternativas para desarrollo, sin tocar el código:
 
 ```bash
 export CALENDAR_ALARM_GOOGLE_CLIENT_FILE=~/Descargas/client_secret.json
@@ -59,8 +60,10 @@ export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
 export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=...
 ```
 
-Si el archivo falta, el script de empaquetado avisa y el botón de la app
-muestra un error: la build se genera, pero no podrá conectar con Google.
+También se admite, si lo prefieres, un
+`src/calendar_alarm/assets/google_client.json`. Si no hay credenciales por
+ninguna vía, el script de empaquetado avisa y el botón de la app muestra un
+error: la build se genera, pero no podrá conectar con Google.
 
 > Google trata el secreto de un cliente de *Aplicación de escritorio* como no
 > confidencial (viaja en el binario). No uses credenciales de tipo

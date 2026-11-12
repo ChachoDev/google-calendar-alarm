@@ -98,10 +98,18 @@ seleccionar ningún `client_secret.json`.
    email de soporte y tu cuenta como **usuario de prueba** (hasta 100 mientras
    la app no esté verificada).
 5. **Credenciales → Crear credenciales → ID de cliente de OAuth**, tipo
-   **Aplicación de escritorio**. Descarga el JSON.
-6. Guarda ese JSON como `src/calendar_alarm/assets/google_client.json`.
+   **Aplicación de escritorio**. Descarga el JSON y abre el `client_id` y el
+   `client_secret`.
+6. Pega esos dos valores **una sola vez** en
+   `src/calendar_alarm/oauth_client.py`:
 
-Alternativas para desarrollo, sin copiar el archivo:
+```python
+CLIENT_ID = "1234567890-abc.apps.googleusercontent.com"
+CLIENT_SECRET = "GOCSPX-..."
+```
+
+No hace falta ningún archivo: los valores quedan dentro del código y del
+ejecutable. Alternativa para desarrollo, sin tocar el código:
 
 ```bash
 export CALENDAR_ALARM_GOOGLE_CLIENT_FILE=~/Descargas/client_secret.json
@@ -110,9 +118,8 @@ export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
 export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=...
 ```
 
-El archivo incluido se empaqueta automáticamente en todas las builds (también
-en el `.exe` y la `.app`). Si falta, el botón muestra un aviso y el build avisa
-de que el ejecutable no podrá conectarse.
+Si no hay credenciales, el botón muestra un aviso y el build avisa de que el
+ejecutable no podrá conectarse.
 
 > **No** uses credenciales de tipo «Aplicación web»: su secreto sí es
 > confidencial y no debe distribuirse. El `token.json` de cada usuario se
