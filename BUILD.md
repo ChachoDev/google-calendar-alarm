@@ -319,7 +319,8 @@ proyecto:
 
 ```bash
 git remote add origin https://github.com/TU-USUARIO/calendar-alarm.git
-git push -u origin main
+git branch -M master
+git push -u origin master
 ```
 
 Al subirlo se ejecuta solo el workflow **Tests** en Linux, Windows y macOS.
