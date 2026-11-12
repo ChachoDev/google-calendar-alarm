@@ -56,7 +56,8 @@ Python, todas las dependencias y los recursos) para el sistema en el que se
 compila:
 
 ```bash
-uv run --no-project python packaging/build.py
+uv run --no-project python packaging/build.py   # con uv (recomendado)
+python3 packaging/build.py                      # sin uv (Python 3.11–3.13)
 ```
 
 | Sistema  | Resultado                                              |

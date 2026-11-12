@@ -11,12 +11,17 @@ Incluye el intérprete de Python, todas las dependencias (PySide6, pygame,
 google-api-python-client...) y los recursos (sonido de alarma, iconos).
 
 El entorno de desarrollo NO se toca: se crea un entorno virtual de empaquetado
-aislado en build/build-env con uv, se instala allí el proyecto limpio y
-PyInstaller, y se construye desde ese entorno.
+aislado en build/build-env, se instala allí el proyecto limpio y PyInstaller, y
+se construye desde ese entorno.
 
 Uso (desde la raíz del proyecto):
 
-    uv run --no-project python packaging/build.py
+    uv run --no-project python packaging/build.py   # recomendado
+    python3 packaging/build.py                     # sin uv, si hay Python 3.11-3.13
+
+Con uv no hace falta tener Python instalado (uv descarga la versión indicada).
+Sin uv se usa el Python del sistema (3.11–3.13) con venv + pip; ese intérprete
+debe existir ya en la máquina.
 
 Opciones:
 
@@ -33,6 +38,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_DIR = ROOT / "build"
@@ -63,7 +69,7 @@ def log(message: str) -> None:
     print(f"\n==> {message}", flush=True)
 
 
-def fail(message: str) -> None:
+def fail(message: str) -> NoReturn:
     print(f"\nERROR: {message}", file=sys.stderr, flush=True)
     raise SystemExit(1)
 
@@ -74,14 +80,53 @@ def run(command: list[object], *, env: dict[str, str] | None = None) -> None:
     subprocess.run([str(part) for part in command], cwd=ROOT, check=True, env=env)
 
 
-def find_uv() -> str:
-    uv = shutil.which("uv")
-    if uv is None:
-        fail(
-            "No se encontró 'uv'. Instálalo desde https://docs.astral.sh/uv/ y "
-            "vuelve a ejecutar el script."
+def find_uv() -> str | None:
+    """Devuelve la ruta de uv, o None para usar venv + pip del sistema."""
+    return shutil.which("uv")
+
+
+def _python_version(executable: str) -> str | None:
+    try:
+        result = subprocess.run(
+            [
+                executable,
+                "-c",
+                "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=20,
         )
-    return uv
+    except OSError:
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def find_system_python(python_version: str) -> str:
+    """Busca un intérprete compatible que pueda crear entornos con pip."""
+    candidates = [f"python{python_version}", "python3", "python", sys.executable]
+    checked: set[str] = set()
+    for name in candidates:
+        executable = shutil.which(name) or (name if os.path.isabs(name) else None)
+        if executable is None or executable in checked:
+            continue
+        checked.add(executable)
+        if _python_version(executable) != python_version:
+            continue
+        probe = subprocess.run(
+            [executable, "-c", "import venv, ensurepip"],
+            capture_output=True,
+            check=False,
+        )
+        if probe.returncode == 0:
+            return executable
+
+    fail(
+        f"No se encontró 'uv' ni un Python {python_version} con venv/pip.\n"
+        "  Recomendado: instala uv (https://docs.astral.sh/uv/) y repite el comando.\n"
+        f"  Alternativa: instala Python {python_version} y ejecuta el script con él."
+    )
 
 
 def venv_python() -> Path:
@@ -98,19 +143,28 @@ def clean(previous: bool) -> None:
         shutil.rmtree(path, ignore_errors=True)
 
 
-def prepare_build_environment(uv: str, python_version: str) -> Path:
+def prepare_build_environment(uv: str | None, python_version: str) -> Path:
     """Crea un entorno aislado con el proyecto limpio + PyInstaller."""
     log(f"Creando entorno de empaquetado aislado (Python {python_version})")
-    run([uv, "venv", "--clear", "--python", python_version, BUILD_ENV])
     python = venv_python()
+
+    if uv is not None:
+        run([uv, "venv", "--clear", "--python", python_version, BUILD_ENV])
+        install = [uv, "pip", "install", "--python", python, "--quiet"]
+    else:
+        base = find_system_python(python_version)
+        print(f"    (sin uv: se usa {base} con venv + pip)", flush=True)
+        run([base, "-m", "venv", "--clear", BUILD_ENV])
+        install = [python, "-m", "pip", "install", "--quiet"]
+
     if not python.exists():
         fail(f"No se pudo crear el intérprete del entorno de build: {python}")
 
     log("Instalando el proyecto y sus dependencias en el entorno aislado")
-    run([uv, "pip", "install", "--python", python, "--quiet", "."])
+    run([*install, "."])
 
     log("Instalando PyInstaller (solo en el entorno de build)")
-    run([uv, "pip", "install", "--python", python, "--quiet", *PACKAGING_REQUIREMENTS])
+    run([*install, *PACKAGING_REQUIREMENTS])
     return python
 
 
@@ -251,6 +305,7 @@ def main() -> int:
     print(f"    Entorno de build aislado: {BUILD_ENV}")
 
     uv = find_uv()
+    print(f"    uv: {uv or 'no encontrado (se usará venv + pip del sistema)'}")
     clean(not args.no_clean)
     python = prepare_build_environment(uv, args.python)
     generate_icons(python)
