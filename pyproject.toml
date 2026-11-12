@@ -1,0 +1,61 @@
+[project]
+name = "calendar-alarm"
+version = "1.0.0"
+description = "Alarma multiplataforma (Windows/Linux/macOS) ligada a Google Calendar"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Calendar Alarm contributors" }]
+keywords = ["alarm", "calendar", "google-calendar", "pyside6", "desktop"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Scheduling",
+]
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "PySide6>=6.8",
+    "google-api-python-client>=2.140",
+    "google-auth-httplib2>=0.2",
+    "google-auth-oauthlib>=1.2",
+    "httplib2>=0.22",
+    "pygame>=2.6",
+    "platformdirs>=4.3",
+]
+
+[project.scripts]
+calendar-alarm = "calendar_alarm.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/calendar_alarm"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+ignore = [
+    # La app debe sobrevivir a fallos de audio/red/gestor de ventanas:
+    # se capturan excepciones amplias de forma intencionada.
+    "BLE001",
+    "S110",
+    # timezone.utc es más legible que el alias UTC en este código.
+    "UP017",
+    # Falso positivo: convertir un datetime naive a UTC es intencionado.
+    "FURB162",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.14"]

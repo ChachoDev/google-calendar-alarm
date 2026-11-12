@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.ruff_cache/
+.pytest_cache/
+*.spec
+
+# Artefactos generados por el empaquetado
+*.exe
+*.dmg
+*.AppImage
+
+# Basura de sistemas operativos
+.DS_Store
+Thumbs.db
+desktop.ini
+# Credenciales sensibles: nunca subir estos archivos
+client_secret*.json
+token.json
