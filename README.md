@@ -77,22 +77,46 @@ Instrucciones completas (dependencias por sistema, cómo arrancar el ejecutable,
 firma/cuarentena, límites de `glibc`/arquitectura y compilación de los tres
 sistemas con GitHub Actions): **[BUILD.md](BUILD.md)**.
 
-## Configuración de Google Calendar (primera vez)
+## Conectar con Google (sin archivos que subir)
+
+La aplicación **incluye su propio cliente OAuth de Google**, así que el usuario
+final solo tiene que pulsar **Conectar con Google**: se abre el navegador, elige
+su cuenta, autoriza el acceso de solo lectura y listo. No hay que descargar ni
+seleccionar ningún `client_secret.json`.
+
+> Google exige que toda aplicación registre un cliente OAuth. Ese registro se
+> hace **una vez** (lo hace quien compila/distribuye la app) y sus credenciales
+> se empaquetan dentro del ejecutable. Google considera que el secreto de un
+> cliente de *Aplicación de escritorio* no es confidencial.
+
+### Registrarlo una sola vez (para quien compila)
 
 1. Entra en [Google Cloud Console](https://console.cloud.google.com/).
-2. Crea un proyecto nuevo (p. ej. `calendar-alarm`).
+2. Crea un proyecto (p. ej. `calendar-alarm`).
 3. **APIs y servicios → Biblioteca → Google Calendar API → Activar**.
-4. **Pantalla de consentimiento OAuth → Crear → Externo**, rellena el nombre
-   del app, tu email de soporte y añade tu cuenta de Gmail como **usuario
-   de prueba**.
-5. **Credenciales → Crear credenciales → ID de cliente de OAuth**.
-   Tipo: **Aplicación de escritorio**. Descarga el JSON.
-6. Guarda el archivo como `client_secret.json` (por ejemplo dentro de esta
-   carpeta) y selecciónalo en la aplicación con **Examinar…**.
+4. **Pantalla de consentimiento OAuth → Crear → Externo**: nombre de la app,
+   email de soporte y tu cuenta como **usuario de prueba** (hasta 100 mientras
+   la app no esté verificada).
+5. **Credenciales → Crear credenciales → ID de cliente de OAuth**, tipo
+   **Aplicación de escritorio**. Descarga el JSON.
+6. Guarda ese JSON como `src/calendar_alarm/assets/google_client.json`.
 
-> El archivo `client_secret.json` y el `token.json` generado contienen
-> credenciales: nunca los compartas ni los subas a git (ya están en
-> `.gitignore`).
+Alternativas para desarrollo, sin copiar el archivo:
+
+```bash
+export CALENDAR_ALARM_GOOGLE_CLIENT_FILE=~/Descargas/client_secret.json
+# o
+export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=...
+```
+
+El archivo incluido se empaqueta automáticamente en todas las builds (también
+en el `.exe` y la `.app`). Si falta, el botón muestra un aviso y el build avisa
+de que el ejecutable no podrá conectarse.
+
+> **No** uses credenciales de tipo «Aplicación web»: su secreto sí es
+> confidencial y no debe distribuirse. El `token.json` de cada usuario se
+> guarda solo en su equipo.
 
 ## Uso
 
@@ -100,13 +124,12 @@ sistemas con GitHub Actions): **[BUILD.md](BUILD.md)**.
 uv run calendar-alarm
 ```
 
-1. Pulsa **Examinar…** y elige tu `client_secret.json`.
-2. Pulsa **Conectar con Google** (se abre el navegador) y autoriza el acceso
+1. Pulsa **Conectar con Google** (se abre el navegador) y autoriza el acceso
    de solo lectura a tu calendario.
-3. Define el margen de aviso en **horas** y **minutos** (por defecto 0 h 5 min):
+2. Define el margen de aviso en **horas** y **minutos** (por defecto 0 h 5 min):
    es el tiempo **antes** del inicio del evento en el que arrancará la alarma.
-4. Elige tu sonido (o deja el incluido) y pulsa **Probar** si quieres.
-5. La aplicación consulta Google Calendar cada 60 s (configurable). Cuando un
+3. Elige tu sonido (o deja el incluido) y pulsa **Probar** si quieres.
+4. La aplicación consulta Google Calendar cada 60 s (configurable). Cuando un
    evento esté a menos del margen, sonará la alarma, se mostrará la ventana
    aviso con los datos del evento y la ventana principal se minimizará a la
    bandeja.
@@ -173,6 +196,7 @@ src/calendar_alarm/
 ├── config.py            # Configuración persistente (JSON)
 ├── models.py            # Modelo CalendarEvent
 ├── auth.py              # Sesión Google (conectar/desconectar/cambiar cuenta)
+├── oauth_client.py      # Credenciales OAuth incluidas (sin client_secret.json)
 ├── calendar_service.py  # Consulta a Google Calendar API (+ caché del cliente)
 ├── workers.py           # Hilo de fondo (QThread) de consultas periódicas
 ├── alarm_controller.py  # Lógica de alarmas (sin UI): decide cuándo suena
@@ -215,6 +239,9 @@ CalendarWorker (hilo) ──events──▶ AlarmController ──señales──
   revisa que haya un servidor de sonido (PulseAudio/PipeWire, WASAPI, CoreAudio).
 - **El navegador no se abre al autenticar**: la consola mostrará una URL;
   ábrela manualmente en tu navegador.
+- **«Esta compilación no tiene configurada la aplicación de Google»**: falta
+  `src/calendar_alarm/assets/google_client.json`; mira
+  [BUILD.md § Cliente OAuth de Google](BUILD.md).
 - **Sin eventos**: comprueba que la cuenta conectada sea la correcta
   (botón *Cambiar de cuenta*) y que el evento tenga hora exacta
   (los eventos de todo el día se ignoran).

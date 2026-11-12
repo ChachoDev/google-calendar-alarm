@@ -9,6 +9,8 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
+from calendar_alarm.oauth_client import client_config
+
 # calendar.readonly: leer eventos. openid/email: mostrar la cuenta conectada.
 SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
@@ -82,20 +84,22 @@ class GoogleAuth:
         return creds if creds.valid else None
 
     # ------------------------------------------------------------- acciones
-    def sign_in(self, client_secret_path: str, *, select_account: bool = True) -> str | None:
+    def sign_in(self, *, select_account: bool = True) -> str | None:
         """Abre el navegador para autenticarse. Devuelve el correo conectado.
 
         `select_account=True` fuerza el selector de cuentas de Google, lo que
-        permite autenticarse con otra cuenta distinta de la actual.
+        permite autenticarse con otra cuenta distinta de la actual. Las
+        credenciales del cliente OAuth van incluidas en la aplicación
+        (ver `calendar_alarm.oauth_client`).
         """
-        path = Path(client_secret_path).expanduser() if client_secret_path else None
-        if path is None or not path.is_file():
+        config = client_config()
+        if config is None:
             raise GoogleAuthError(
-                "No se encontró el archivo client_secret.json de Google Cloud. "
-                "Selecciona primero ese archivo con el botón «Examinar…»."
+                "Esta compilación no tiene configurada la aplicación de Google. "
+                "Consulta «Configurar Google» en la documentación."
             )
         try:
-            flow = InstalledAppFlow.from_client_secrets_file(str(path), SCOPES)
+            flow = InstalledAppFlow.from_client_config(config, SCOPES)
             kwargs: dict[str, object] = {"port": 0, "open_browser": True}
             if select_account:
                 kwargs["prompt"] = "select_account"

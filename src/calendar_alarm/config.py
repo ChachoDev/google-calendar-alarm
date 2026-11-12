@@ -17,18 +17,18 @@ def config_dir() -> Path:
     return path
 
 
-def default_sound_path() -> str:
-    """Ruta al sonido de alarma incluido con la aplicación.
+def asset_path(relative: str) -> Path:
+    """Ruta a un recurso incluido con la aplicación (p. ej. ``assets/alarm.wav``).
 
-    Funciona tanto en desarrollo (paquete instalado) como en el ejecutable
-    congelado con PyInstaller (los datos se extraen en sys._MEIPASS).
+    Funciona en desarrollo (paquete instalado) y en el ejecutable congelado
+    con PyInstaller (los datos se extraen en ``sys._MEIPASS``).
     """
     from importlib.resources import files
 
     try:
-        candidate = files("calendar_alarm") / "assets" / "alarm.wav"
+        candidate = files("calendar_alarm").joinpath(relative)
         if candidate.is_file():
-            return str(candidate)
+            return Path(str(candidate))
     except (ImportError, ModuleNotFoundError, TypeError):
         pass
 
@@ -36,11 +36,16 @@ def default_sound_path() -> str:
 
     base = getattr(sys, "_MEIPASS", None)
     if base:
-        frozen = Path(base) / "calendar_alarm" / "assets" / "alarm.wav"
+        frozen = Path(base) / "calendar_alarm" / relative
         if frozen.is_file():
-            return str(frozen)
+            return frozen
 
-    return str(Path(__file__).resolve().parent / "assets" / "alarm.wav")
+    return Path(__file__).resolve().parent / relative
+
+
+def default_sound_path() -> str:
+    """Ruta al sonido de alarma incluido con la aplicación."""
+    return str(asset_path("assets/alarm.wav"))
 
 
 @dataclass
@@ -50,8 +55,6 @@ class Config:
     warn_minutes: int = 5
     # Ruta al sonido personalizado; vacío => sonido por defecto incluido
     sound_path: str = ""
-    # Ruta al client_secret.json de Google Cloud
-    client_secret_path: str = ""
     # Segundos entre consultas a la API de Google Calendar
     poll_interval: int = 60
 

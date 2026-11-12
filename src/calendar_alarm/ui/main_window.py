@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -23,11 +22,11 @@ from PySide6.QtWidgets import (
 from calendar_alarm.audio import AudioPlayer
 from calendar_alarm.auth import GoogleAuth, GoogleAuthError
 from calendar_alarm.config import Config, default_sound_path, save_config
+from calendar_alarm.oauth_client import is_configured
 from calendar_alarm.ui.icons import bell_icon
 from calendar_alarm.ui.theme import APP_QSS
 from calendar_alarm.ui.util import fit_to_screen
 
-SECRET_FILTER = "Archivos JSON (*.json);;Todos los archivos (*)"
 SOUND_FILTER = (
     "Archivos de sonido (*.wav *.mp3 *.ogg *.flac);;"
     "WAV (*.wav);;MP3 (*.mp3);;OGG (*.ogg);;FLAC (*.flac);;"
@@ -42,14 +41,13 @@ class SignInWorker(QThread):
     succeeded = Signal(str)  # correo conectado
     failed = Signal(str)
 
-    def __init__(self, auth: GoogleAuth, client_secret_path: str, parent=None) -> None:
+    def __init__(self, auth: GoogleAuth, parent=None) -> None:
         super().__init__(parent)
         self._auth = auth
-        self._path = client_secret_path
 
     def run(self) -> None:
         try:
-            email = self._auth.sign_in(self._path, select_account=True)
+            email = self._auth.sign_in(select_account=True)
         except GoogleAuthError as exc:
             self.failed.emit(str(exc))
         except Exception as exc:  # errores de red u otros
@@ -139,21 +137,9 @@ class MainWindow(QWidget):
         top.addStretch(1)
         layout.addLayout(top)
 
-        secret_row = QHBoxLayout()
-        secret_row.addWidget(QLabel("client_secret.json:"))
-        self._secret_edit = QLineEdit(self.config.client_secret_path)
-        self._secret_edit.setReadOnly(True)
-        self._secret_edit.setPlaceholderText("Ningún archivo seleccionado")
-        secret_row.addWidget(self._secret_edit, 1)
-        browse_secret = QPushButton("Examinar…")
-        browse_secret.clicked.connect(self._on_browse_secret)
-        secret_row.addWidget(browse_secret)
-        layout.addLayout(secret_row)
-
         secret_hint = QLabel(
-            "Se genera en Google Cloud Console → Credenciales → OAuth de «Aplicación "
-            "de escritorio». El archivo no se sube a ningún sitio: solo se guarda "
-            "esta ruta."
+            "Al pulsar «Conectar con Google» se abrirá tu navegador para elegir "
+            "la cuenta y autorizar el acceso de solo lectura al calendario."
         )
         secret_hint.setObjectName("hint")
         secret_hint.setWordWrap(True)
@@ -308,37 +294,17 @@ class MainWindow(QWidget):
             self._auth_status.style().polish(self._auth_status)
             self.hide_auth_error()
 
-    def _on_browse_secret(self) -> None:
-        start_dir = (
-            str(Path(self.config.client_secret_path).parent)
-            if self.config.client_secret_path
-            else ""
-        )
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Selecciona client_secret.json", start_dir, SECRET_FILTER
-        )
-        if not path:
-            return
-        self.config.client_secret_path = path
-        save_config(self.config)
-        self._secret_edit.setText(path)
-        self.hide_auth_error()
-
     def _on_sign_in(self) -> None:
-        if not self.config.client_secret_path or not Path(self.config.client_secret_path).is_file():
-            self._on_browse_secret()
-            if (
-                not self.config.client_secret_path
-                or not Path(self.config.client_secret_path).is_file()
-            ):
-                self.show_auth_error(
-                    "Selecciona primero el archivo client_secret.json de Google Cloud."
-                )
-                return
+        if not is_configured():
+            self.show_auth_error(
+                "Esta compilación no incluye la configuración de Google. "
+                "Consulta «Configurar Google» en la documentación (BUILD.md)."
+            )
+            return
 
         self.hide_auth_error()
         self._set_sign_in_busy(True, "Esperando autorización en el navegador…")
-        self._sign_in_worker = SignInWorker(self.auth, self.config.client_secret_path, self)
+        self._sign_in_worker = SignInWorker(self.auth, self)
         self._sign_in_worker.succeeded.connect(self._on_sign_in_ok)
         self._sign_in_worker.failed.connect(self._on_sign_in_failed)
         self._sign_in_worker.start()

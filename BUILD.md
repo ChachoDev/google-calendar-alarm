@@ -35,6 +35,37 @@ allí, únicamente para el empaquetado:
 Así tu `.venv` de desarrollo queda intacto: no se modifican versiones ni se
 instalan paquetes nuevos en él.
 
+### Cliente OAuth de Google (para que «Conectar con Google» funcione)
+
+La app no pide `client_secret.json` al usuario: el botón abre el navegador
+directamente porque las credenciales del cliente OAuth viajan dentro del
+ejecutable. Regístralas **una sola vez**:
+
+1. En [Google Cloud Console](https://console.cloud.google.com/), crea un
+   proyecto y activa **Google Calendar API**.
+2. Configura la **Pantalla de consentimiento OAuth** (Externo) y añade tu
+   cuenta como **usuario de prueba**.
+3. **Credenciales → Crear credenciales → ID de cliente de OAuth → Aplicación
+   de escritorio**. Descarga el JSON.
+4. Guárdalo como `src/calendar_alarm/assets/google_client.json`.
+
+Se empaqueta automáticamente (`--collect-data calendar_alarm`) en Linux,
+Windows y macOS. Alternativas para desarrollo, sin copiar el archivo:
+
+```bash
+export CALENDAR_ALARM_GOOGLE_CLIENT_FILE=~/Descargas/client_secret.json
+# o
+export CALENDAR_ALARM_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+export CALENDAR_ALARM_GOOGLE_CLIENT_SECRET=...
+```
+
+Si el archivo falta, el script de empaquetado avisa y el botón de la app
+muestra un error: la build se genera, pero no podrá conectar con Google.
+
+> Google trata el secreto de un cliente de *Aplicación de escritorio* como no
+> confidencial (viaja en el binario). No uses credenciales de tipo
+> «Aplicación web»: su secreto sí es confidencial.
+
 ### Requisitos en el sistema
 
 Hay dos modos; el script elige solo:
@@ -186,11 +217,11 @@ update-desktop-database ~/.local/share/applications 2>/dev/null || true
 El heredoc sin comillas expande `$HOME`, así que `Exec` queda con la ruta
 absoluta que exige el formato `.desktop`.
 
-El primer arranque abre la configuración: elige tu `client_secret.json`,
-pulsa **Conectar con Google** y ajusta el margen de aviso. Los datos de sesión
-se guardan en el directorio de configuración del sistema
-(`~/.config/CalendarAlarm/`, `%APPDATA%\CalendarAlarm\` o
-`~/Library/Application Support/CalendarAlarm/`).
+El primer arranque abre la configuración: pulsa **Conectar con Google** (se
+abre el navegador), elige la cuenta y autoriza el acceso de solo lectura; luego
+ajusta el margen de aviso. Los datos de sesión se guardan en el directorio de
+configuración del sistema (`~/.config/CalendarAlarm/`,
+`%APPDATA%\CalendarAlarm\` o `~/Library/Application Support/CalendarAlarm/`).
 
 ---
 
@@ -245,8 +276,7 @@ git push -u origin main
 ```
 
 El `.gitignore` ya excluye `.venv/`, `build/`, `dist/`, cachés y las
-credenciales (`client_secret*.json`, `token.json`). **Nunca subas esos dos
-archivos.**
+credenciales personales (`token.json`). **Nunca subas ese archivo.**
 
 Para publicar una versión con binarios:
 
