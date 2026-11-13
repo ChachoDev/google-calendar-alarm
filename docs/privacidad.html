@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Política de privacidad — Calendar Alarm</title>
+  <meta name="description" content="Política de privacidad de Calendar Alarm: qué datos de Google accede, cómo se almacenan y cómo revocar el acceso.">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 3rem 1.25rem; background: #0f1115; color: #e6e8ee;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.65;
+    }
+    main { max-width: 46rem; margin: 0 auto; }
+    h1 { font-size: 2rem; margin: 0 0 .25rem; letter-spacing: -.02em; }
+    h2 { font-size: 1.2rem; margin: 2.2rem 0 .6rem; }
+    .tag { color: #9aa4b2; margin: 0 0 2rem; }
+    a { color: #8ab4f8; }
+    ul { padding-left: 1.25rem; }
+    li { margin: .35rem 0; }
+    hr { border: 0; border-top: 1px solid #262b36; margin: 3rem 0; }
+    code { background: #222731; padding: .1rem .35rem; border-radius: 5px; }
+    .box { background: #171a21; border: 1px solid #262b36; border-radius: 12px; padding: 1rem 1.25rem; }
+    footer { margin-top: 3rem; color: #8b94a3; font-size: .9rem; }
+    [lang="en"] { color: #c9cfda; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Política de privacidad</h1>
+  <p class="tag">Calendar Alarm · Última actualización: 13 de noviembre de 2026</p>
+
+  <p>Esta política explica qué información trata <strong>Calendar Alarm</strong>
+  («la aplicación»), una aplicación de escritorio de código abierto distribuida en
+  <a href="https://github.com/ChachoDev/google-calendar-alarm">github.com/ChachoDev/google-calendar-alarm</a>,
+  y cómo se usa el acceso a tu cuenta de Google.</p>
+
+  <h2>1. Qué datos se accede</h2>
+  <ul>
+    <li><strong>Dirección de correo electrónico</strong> de la cuenta de Google conectada,
+    únicamente para mostrarte qué cuenta está activa en la aplicación.</li>
+    <li><strong>Eventos del calendario</strong> (título, descripción, ubicación, fecha y hora)
+    del calendario principal, con permiso de <strong>solo lectura</strong>
+    (<code>https://www.googleapis.com/auth/calendar.readonly</code>).</li>
+  </ul>
+  <p>La aplicación <strong>no</strong> crea, modifica ni borra eventos, y no accede a
+  contactos, correo, archivos ni a ningún otro dato de tu cuenta.</p>
+
+  <h2>2. Para qué se usan</h2>
+  <p>Exclusivamente para programar alarmas locales y mostrarte el aviso del evento antes
+  de que empiece. No se usan para publicidad ni para elaborar perfiles.</p>
+
+  <h2>3. Dónde se almacenan</h2>
+  <ul>
+    <li>El <strong>token de autorización</strong> de Google se guarda únicamente en tu
+    equipo, en el directorio de configuración del usuario, y en Linux/macOS con permisos
+    <code>600</code> (solo tu usuario puede leerlo).</li>
+    <li>Los <strong>eventos</strong> se mantienen en memoria mientras la aplicación está
+    abierta. No se envían a ningún servidor ni se guardan en una base de datos.</li>
+    <li>La aplicación <strong>no tiene servidores propios</strong>: las consultas van
+    directamente de tu equipo a la API de Google Calendar.</li>
+  </ul>
+
+  <h2>4. Con quién se comparten</h2>
+  <p>Con nadie. No hay analíticas, publicidad, rastreadores ni cesión de datos a terceros.
+  El proyecto no recopila información sobre sus usuarios.</p>
+
+  <h2>5. Uso limitado de datos de Google</h2>
+  <p class="box">El uso y la transferencia que Calendar Alarm hace de la información
+  recibida de las API de Google se ajustan a la
+  <a href="https://developers.google.com/terms/api-services-user-data-policy">Política de
+  datos de usuario de los servicios de API de Google</a>, incluidos los requisitos de
+  <strong>uso limitado</strong> (Limited Use).</p>
+
+  <h2>6. Conservación y eliminación</h2>
+  <ul>
+    <li>Puedes desconectar la cuenta desde la propia aplicación
+    («Desconectar» / «Cambiar de cuenta»), lo que borra el token local.</li>
+    <li>Puedes revocar el acceso en cualquier momento desde
+    <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+    <li>Al desinstalar la aplicación puedes eliminar el directorio de configuración
+    (<code>~/.config/CalendarAlarm</code> en Linux) para borrar cualquier resto.</li>
+  </ul>
+
+  <h2>7. Seguridad</h2>
+  <p>La comunicación con Google se realiza mediante HTTPS. El token se almacena localmente
+  con permisos restringidos y nunca se transmite a terceros.</p>
+
+  <h2>8. Menores</h2>
+  <p>La aplicación no está dirigida a menores de 13 años y no recopila datos de menores de
+  forma consciente.</p>
+
+  <h2>9. Cambios en esta política</h2>
+  <p>Si esta política cambia, se actualizará esta página y la fecha de la cabecera. Los
+  cambios relevantes se anotarán en el historial del repositorio.</p>
+
+  <h2>10. Contacto</h2>
+  <p>Para cualquier duda sobre privacidad:
+  <a href="mailto:victorcanoje@gmail.com">victorcanoje@gmail.com</a>.</p>
+
+  <hr>
+
+  <section lang="en">
+    <h1>Privacy Policy</h1>
+    <p class="tag">Calendar Alarm · Last updated: November 13, 2026</p>
+
+    <p>This policy explains how <strong>Calendar Alarm</strong> (the “app”), an open-source
+    desktop application distributed at
+    <a href="https://github.com/ChachoDev/google-calendar-alarm">github.com/ChachoDev/google-calendar-alarm</a>,
+    handles your information and your Google account access.</p>
+
+    <h2>1. Data accessed</h2>
+    <ul>
+      <li>The <strong>email address</strong> of the connected Google account, only to show
+      which account is active in the app.</li>
+      <li><strong>Calendar events</strong> (title, description, location, start and end time)
+      from your primary calendar, with <strong>read-only</strong> access
+      (<code>https://www.googleapis.com/auth/calendar.readonly</code>).</li>
+    </ul>
+    <p>The app does <strong>not</strong> create, edit or delete events, and does not access
+    contacts, email, files or any other account data.</p>
+
+    <h2>2. Purpose</h2>
+    <p>Solely to schedule local reminder alarms and show event details before an event
+    starts. Data is not used for advertising or profiling.</p>
+
+    <h2>3. Storage</h2>
+    <ul>
+      <li>The <strong>Google OAuth token</strong> is stored only on your device, in the
+      user configuration directory, with <code>600</code> permissions on Linux/macOS.</li>
+      <li><strong>Events</strong> are kept in memory while the app is running. They are not
+      sent to any server and are not stored in a database.</li>
+      <li>The app has <strong>no backend servers</strong>: requests go directly from your
+      device to the Google Calendar API.</li>
+    </ul>
+
+    <h2>4. Sharing</h2>
+    <p>None. There are no analytics, ads, trackers or third-party data sharing. The project
+    does not collect information about its users.</p>
+
+    <h2>5. Google Limited Use</h2>
+    <p class="box">Calendar Alarm’s use and transfer to any other app of information received
+    from Google APIs will adhere to the
+    <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API
+    Services User Data Policy</a>, including the <strong>Limited Use</strong> requirements.</p>
+
+    <h2>6. Retention and deletion</h2>
+    <ul>
+      <li>You can disconnect the account from the app, which deletes the local token.</li>
+      <li>You can revoke access at any time at
+      <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+      <li>If you uninstall the app, you may delete its configuration directory
+      (<code>~/.config/CalendarAlarm</code> on Linux) to remove any remaining data.</li>
+    </ul>
+
+    <h2>7. Security</h2>
+    <p>Communication with Google uses HTTPS. The token is stored locally with restricted
+    permissions and is never transmitted to third parties.</p>
+
+    <h2>8. Children</h2>
+    <p>The app is not directed to children under 13 and does not knowingly collect data from
+    children.</p>
+
+    <h2>9. Changes</h2>
+    <p>If this policy changes, this page and the date above will be updated. Material changes
+    will be recorded in the repository history.</p>
+
+    <h2>10. Contact</h2>
+    <p>Privacy questions: <a href="mailto:victorcanoje@gmail.com">victorcanoje@gmail.com</a>.</p>
+  </section>
+
+  <footer>
+    <p><a href="index.html">Volver a Calendar Alarm</a></p>
+  </footer>
+</main>
+</body>
+</html>

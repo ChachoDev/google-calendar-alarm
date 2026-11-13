@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calendar Alarm — Alarmas de Google Calendar</title>
+  <meta name="description" content="Aplicación de escritorio que crea alarmas locales antes de tus eventos de Google Calendar. Código abierto, sin servidores y con acceso de solo lectura.">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 3rem 1.25rem; background: #0f1115; color: #e6e8ee;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.6;
+    }
+    main { max-width: 46rem; margin: 0 auto; }
+    h1 { font-size: 2.2rem; margin: 0 0 .25rem; letter-spacing: -.02em; }
+    h2 { font-size: 1.25rem; margin: 2.5rem 0 .75rem; }
+    .tag { color: #9aa4b2; margin: 0 0 2rem; }
+    a { color: #8ab4f8; }
+    ul { padding-left: 1.25rem; }
+    li { margin: .35rem 0; }
+    .card {
+      background: #171a21; border: 1px solid #262b36; border-radius: 14px;
+      padding: 1.25rem 1.5rem; margin: 1.5rem 0;
+    }
+    .links a { display: inline-block; margin-right: 1rem; }
+    footer { margin-top: 3rem; color: #8b94a3; font-size: .9rem; }
+    code { background: #222731; padding: .1rem .35rem; border-radius: 5px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Calendar Alarm</h1>
+  <p class="tag">Alarmas locales antes de tus eventos de Google Calendar · open source · MIT</p>
+
+  <div class="card">
+    <p><strong>Calendar Alarm</strong> es una aplicación de escritorio (Linux, macOS y
+    Windows) que consulta tu calendario y te avisa con una alarma configurable antes de
+    que empiece cada evento.</p>
+    <p class="links">
+      <a href="https://github.com/ChachoDev/google-calendar-alarm">Código fuente</a>
+      <a href="https://github.com/ChachoDev/google-calendar-alarm/releases">Descargas</a>
+      <a href="privacidad.html">Privacidad</a>
+    </p>
+  </div>
+
+  <h2>Cómo funciona</h2>
+  <ul>
+    <li>Pulsas <em>Conectar con Google</em> y autorizas el acceso de <strong>solo lectura</strong> al calendario.</li>
+    <li>La aplicación consulta tus próximos eventos cada minuto, directamente desde tu equipo.</li>
+    <li>Cuando un evento está a punto de empezar, suena la alarma y aparece el aviso con los datos del evento.</li>
+  </ul>
+
+  <h2>Privacidad por diseño</h2>
+  <ul>
+    <li>No hay servidores propios: la aplicación habla directamente con Google.</li>
+    <li>El token de acceso se guarda <strong>solo en tu equipo</strong>, con permisos restringidos.</li>
+    <li>No se recopilan analíticas, no hay publicidad y no se comparten datos con terceros.</li>
+  </ul>
+
+  <h2>Requisitos</h2>
+  <p>Una cuenta de Google con Google Calendar. El acceso solicitado es
+  <code>calendar.readonly</code>: leer eventos, sin poder modificarlos.</p>
+
+  <footer>
+    <p>Calendar Alarm es un proyecto de código abierto bajo licencia MIT.
+    Contacto: <a href="mailto:victorcanoje@gmail.com">victorcanoje@gmail.com</a>.</p>
+    <p><a href="privacidad.html">Política de privacidad</a> · Última actualización: 13 de noviembre de 2026.</p>
+  </footer>
+</main>
+</body>
+</html>
