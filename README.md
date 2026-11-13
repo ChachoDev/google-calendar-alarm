@@ -130,15 +130,32 @@ seleccionar ningún `client_secret.json`.
 > se empaquetan dentro del ejecutable. Google considera que el secreto de un
 > cliente de *Aplicación de escritorio* no es confidencial.
 
+**Estado actual del cliente oficial:** publicado en Google Cloud (proyecto
+`calendar-alarm-514512`), por lo que puede conectarse **cualquier cuenta de
+Google**, no solo usuarios de prueba. La app aún no ha pasado la verificación
+de Google, así que el usuario verá el aviso «Google no ha verificado esta
+aplicación» (hay que pulsar *Configuración avanzada → Ir a Calendar Alarm*) y
+existe un límite de 100 usuarios nuevos. El sitio público y la política de
+privacidad están en <https://chachodev.github.io/google-calendar-alarm/>.
+
 ### Registrarlo una sola vez (para quien compila)
 
 1. Entra en [Google Cloud Console](https://console.cloud.google.com/).
 2. Crea un proyecto (p. ej. `calendar-alarm`).
 3. **APIs y servicios → Biblioteca → Google Calendar API → Activar**.
-4. **Pantalla de consentimiento OAuth → Crear → Externo**: nombre de la app,
-   email de soporte y tu cuenta como **usuario de prueba** (hasta 100 mientras
-   la app no esté verificada).
-5. **Credenciales → Crear credenciales → ID de cliente de OAuth**, tipo
+4. **Público → Usuarios externos**: elige un nombre de app, correo de soporte
+   y publica la app (**Publicar app**) para que pueda conectarse cualquier
+   cuenta de Google. Mientras Google no la verifique, los usuarios verán el
+   aviso «Google no ha verificado esta aplicación» y hay un límite de 100
+   usuarios nuevos; al verificar la app desaparecen ambos.
+5. **Información de la marca**: rellena página principal, política de
+   privacidad y dominio autorizado (deben estar publicados y el dominio
+   verificado en [Google Search Console](https://search.google.com/search-console)).
+6. **Acceso a los datos**: declara los permisos que usa la app
+   (`calendar.readonly`, `userinfo.email`, `openid`). Para quitarte el aviso de
+   app no verificada hay que pasar la verificación de Google, que exige un
+   vídeo de demostración y la revisión de la marca.
+7. **Credenciales → Crear credenciales → ID de cliente de OAuth**, tipo
    **Aplicación de escritorio**. Descarga el JSON.
 
 **Guárdalo como `client_secret.json` en la raíz del proyecto.** Ese nombre ya

@@ -54,11 +54,19 @@ ejecutable. Regístralas **una sola vez**:
 
 1. En [Google Cloud Console](https://console.cloud.google.com/), crea un
    proyecto y activa **Google Calendar API**.
-2. Configura la **Pantalla de consentimiento OAuth** (Externo) y añade tu
-   cuenta como **usuario de prueba**.
-3. **Credenciales → Crear credenciales → ID de cliente de OAuth → Aplicación
+2. **Público → Usuarios externos** y publica la app (**Publicar app**) para que
+   pueda conectarse cualquier cuenta de Google. Mientras Google no la verifique
+   aparecerá el aviso «Google no ha verificado esta aplicación» y el límite de
+   100 usuarios nuevos; al aprobarla desaparecen los dos.
+3. **Información de la marca**: página principal, política de privacidad y
+   dominio autorizado. El dominio debe estar publicado y verificado en
+   [Google Search Console](https://search.google.com/search-console).
+4. **Acceso a los datos**: declara `calendar.readonly`, `userinfo.email` y
+   `openid`. La verificación de Google (para quitar el aviso de app no
+   verificada) pide además un vídeo de demostración y la revisión de la marca.
+5. **Credenciales → Crear credenciales → ID de cliente de OAuth → Aplicación
    de escritorio**. Descarga el JSON.
-4. **Guárdalo como `client_secret.json` en la raíz del proyecto.** Ese nombre
+6. **Guárdalo como `client_secret.json` en la raíz del proyecto.** Ese nombre
    ya está en `.gitignore`, así que nunca se sube a git.
 
 A partir de ahí todo es automático:
