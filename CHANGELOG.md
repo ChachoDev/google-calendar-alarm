@@ -5,7 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 ## [1.1.1] - 2026-11-13
 
 ### Cambiado
-- Texto de los campos de horas y minutos centrado dentro del cuadro.
+- Texto de los campos de horas, minutos e intervalo de consulta centrado
+  dentro del cuadro.
 
 ## [1.1.0] - 2026-11-13
 

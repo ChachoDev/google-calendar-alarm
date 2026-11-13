@@ -259,6 +259,7 @@ class MainWindow(QWidget):
         self._poll.setRange(POLL_MIN_MINUTES, POLL_MAX_MINUTES)
         self._poll.setSingleStep(5)
         self._poll.setSuffix(" min")
+        self._poll.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._poll.setValue(self.config.poll_minutes)
         self._poll.setToolTip(
             f"Entre {POLL_MIN_MINUTES} y {POLL_MAX_MINUTES} minutos. "
