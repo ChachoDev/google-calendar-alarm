@@ -272,27 +272,25 @@ configuración del sistema (`~/.config/CalendarAlarm/`,
 
 ---
 
-## 5. Compilar los tres sistemas con GitHub Actions
+## 5. Compilar para otros sistemas
 
-El repositorio incluye `.github/workflows/build.yml`: al subir un tag `v*` (o
-lanzarlo a mano desde **Actions → Build executables → Run workflow**) compila en
-Ubuntu, Windows y macOS y publica los artefactos descargables:
+El repositorio **no usa GitHub Actions**. Cada binario se genera en su propio
+sistema operativo:
 
-1. Sube el proyecto a GitHub (ver sección 7).
-2. En **Settings → Secrets and variables → Actions**, crea los secrets
-   `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`. Así los binarios se compilan con
-   las credenciales sin que estén en el repositorio.
-3. **Actions → Build executables → Run workflow**.
-4. Al terminar, descarga los artefactos de la ejecución
-   (`calendar-alarm-linux`, `-windows`, `-macos`).
-5. Si haces `git push origin v1.0.0`, además se crea una **Release** con los
-   binarios adjuntos.
+1. Copia o clona el proyecto en la máquina destino.
+2. Instala Python 3.11–3.13.
+3. Ejecuta `python3 packaging/build.py`.
+4. El resultado queda en `dist/` (`calendar-alarm`, `CalendarAlarm.exe` o
+   `Calendar Alarm.app` + `CalendarAlarm.dmg`).
 
-Además, `.github/workflows/tests.yml` pasa ruff, todos los tests (unitarios,
-interfaz, integración y empaquetado) y la prueba de humo en los tres sistemas
-en cada push y pull request. Los tests de empaquetado comprueban la lógica de
-`build.py` para Windows, Linux y macOS sin necesidad de compilar. Detalles en el
-apartado «Tests» del [README](README.md).
+Para publicarlo, crea una release y adjunta los binarios a mano:
+
+```bash
+gh release create v1.0.0 dist/calendar-alarm --title "Calendar Alarm 1.0.0"
+gh release upload v1.0.0 dist/CalendarAlarm.exe dist/CalendarAlarm.dmg
+```
+
+Los tests se ejecutan en local con `uv run pytest` y `uv run ruff check .`.
 
 ---
 
@@ -300,11 +298,10 @@ apartado «Tests» del [README](README.md).
 
 - **Arquitectura**: el binario es nativo de la máquina donde se compila
   (`x86_64` o `arm64`). Para distribuir a equipos ARM (p. ej. Mac con Apple
-  Silicon) compílalo en un equipo ARM o con el runner `macos-latest` del CI (Apple Silicon).
+  Silicon) compílalo en un equipo ARM.
 - **Linux y glibc**: un binario compilado en una distribución nueva puede no
   arrancar en otra más antigua. Para máxima compatibilidad, compílalo en la
-  versión de Linux más antigua que vayas a soportar (el workflow usa el runner
-  `ubuntu-22.04`).
+  versión de Linux más antigua que vayas a soportar.
 - **Firma de código**: los artefactos no están firmados.
   - Windows: SmartScreen mostrará un aviso la primera vez; se elimina con un
     certificado de firma de código (de pago).
@@ -331,16 +328,13 @@ git branch -M master
 git push -u origin master
 ```
 
-Al subirlo se ejecuta solo el workflow **Tests** en Linux, Windows y macOS.
-Antes de compilar con CI, crea los secrets de la sección 5.
-
 El `.gitignore` ya excluye `.venv/`, `build/`, `dist/`, cachés y credenciales
 (`token.json`, `client_secret*.json`, `google_client.json`). **Nunca subas
 `token.json`**: contiene los tokens de acceso de la cuenta conectada.
 
 El `client_id`/`client_secret` de la app **no está en el repositorio**: vive en
 `client_secret.json` (ignorado por git) o se pasa al compilar por variables de
-entorno / secrets del CI (sección 5). Si rellenas las constantes de
+entorno. Si rellenas las constantes de
 `src/calendar_alarm/oauth_client.py`, ten en cuenta que entonces sí quedarán
 visibles en GitHub. Aun así, para un cliente de *Aplicación de escritorio*
 Google no lo considera confidencial; lo que nunca debe publicarse es un secreto

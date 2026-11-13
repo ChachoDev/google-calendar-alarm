@@ -13,6 +13,12 @@ APP_NAME = "CalendarAlarm"
 
 CONFIG_DIR_ENV = "CALENDAR_ALARM_CONFIG_DIR"
 
+# Intervalo de consulta a Google Calendar, en minutos.
+POLL_MIN_MINUTES = 5
+POLL_MAX_MINUTES = 60
+DEFAULT_POLL_MINUTES = 5
+
+
 
 def config_dir() -> Path:
     """Directorio de configuración según plataforma (~/.config, %APPDATA%, ~/Library...).
@@ -56,6 +62,15 @@ def default_sound_path() -> str:
     return str(asset_path("assets/alarm.wav"))
 
 
+def _clamp_int(value: object, low: int, high: int, *, default: int) -> int:
+    """Convierte a entero y recorta al rango; si no es numérico, usa ``default``."""
+    try:
+        number = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return default
+    return min(high, max(low, number))
+
+
 @dataclass
 class Config:
     # Margen de aviso por defecto: 5 minutos antes del evento
@@ -63,8 +78,26 @@ class Config:
     warn_minutes: int = 5
     # Ruta al sonido personalizado; vacío => sonido por defecto incluido
     sound_path: str = ""
-    # Segundos entre consultas a la API de Google Calendar
-    poll_interval: int = 60
+    # Minutos entre consultas a la API de Google Calendar (5-60)
+    poll_minutes: int = DEFAULT_POLL_MINUTES
+
+    def __post_init__(self) -> None:
+        try:
+            minutes = int(self.poll_minutes)
+        except (TypeError, ValueError):
+            minutes = DEFAULT_POLL_MINUTES
+        self.poll_minutes = min(POLL_MAX_MINUTES, max(POLL_MIN_MINUTES, minutes))
+
+        self.warn_hours = _clamp_int(self.warn_hours, 0, 23, default=0)
+        self.warn_minutes = _clamp_int(self.warn_minutes, 0, 59, default=5)
+        # Con 0 horas el aviso no puede ser de 0 minutos: sonaría al empezar.
+        if self.warn_hours == 0 and self.warn_minutes == 0:
+            self.warn_minutes = 1
+
+    @property
+    def poll_interval(self) -> int:
+        """Segundos entre consultas, derivados de ``poll_minutes``."""
+        return self.poll_minutes * 60
 
     @property
     def warn_delta(self) -> timedelta:
@@ -96,6 +129,16 @@ def load_config() -> Config:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return Config()
+    # Compatibilidad: versiones anteriores guardaban segundos en poll_interval.
+    if "poll_minutes" not in raw and "poll_interval" in raw:
+        try:
+            seconds = int(raw["poll_interval"])
+        except (TypeError, ValueError):
+            seconds = 0
+        if seconds:
+            raw["poll_minutes"] = max(POLL_MIN_MINUTES, (seconds + 59) // 60)
+        else:
+            raw["poll_minutes"] = DEFAULT_POLL_MINUTES
     known = {f.name for f in fields(Config)}
     return Config(**{k: v for k, v in raw.items() if k in known})
 

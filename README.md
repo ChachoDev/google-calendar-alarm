@@ -83,10 +83,13 @@ decodificador tolera, `>` frente a `>=` en el tiempo límite, la ruta alternativ
 de `asset_path` (idéntica en desarrollo) y valores iniciales `None` frente a
 `""` que nunca se leen.
 
-El workflow `.github/workflows/tests.yml` ejecuta ruff, la suite y la prueba de
-humo en **Linux, Windows y macOS** en cada push y pull request; los tests de
-mutación se lanzan a mano (**Actions → Tests → Run workflow** marcando
-«mutation»).
+Para ejecutar la misma batería que se usa en local:
+
+```bash
+uv run pytest
+uv run ruff check .
+uv run mutmut run   # opcional y lento
+```
 
 ## Ejecutable nativo (Windows / Linux / macOS)
 
@@ -115,8 +118,9 @@ PyInstaller, así que **no altera el `.venv` de desarrollo**. Los iconos se
 generan automáticamente (`packaging/make_icons.py`).
 
 Instrucciones completas (dependencias por sistema, cómo arrancar el ejecutable,
-firma/cuarentena, límites de `glibc`/arquitectura y compilación de los tres
-sistemas con GitHub Actions): **[BUILD.md](BUILD.md)**.
+firma/cuarentena y límites de `glibc`/arquitectura): **[BUILD.md](BUILD.md)**.
+Cada sistema se compila en su propia máquina; el repositorio no usa GitHub
+Actions.
 
 ## Conectar con Google (sin archivos que subir)
 
@@ -170,7 +174,7 @@ El código fuente y git quedan limpios: las credenciales acaban únicamente en
 `build/build-env/` (y por tanto dentro del ejecutable). También puedes usar
 otra ubicación con `CALENDAR_ALARM_GOOGLE_CLIENT_FILE=/ruta/al/json`, o pasar
 `CALENDAR_ALARM_GOOGLE_CLIENT_ID` y `CALENDAR_ALARM_GOOGLE_CLIENT_SECRET` como
-variables de entorno (lo que usa el CI con secrets).
+variables de entorno (útil para compilaciones desatendidas).
 
 Para desarrollo, sin compilar:
 

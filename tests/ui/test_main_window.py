@@ -10,7 +10,7 @@ from calendar_alarm.auth import GoogleAuthError, SignInCancelled
 from calendar_alarm.config import Config
 from calendar_alarm.ui import main_window as mw_module
 from calendar_alarm.ui import util
-from calendar_alarm.ui.main_window import POLL_CHOICES, MainWindow
+from calendar_alarm.ui.main_window import MainWindow
 
 
 class FakeAuth:
@@ -224,21 +224,38 @@ def test_cambiar_margen_guarda_configuracion(make_window):
 def test_rango_de_los_selectores(make_window):
     w = make_window()
     assert (w._hours.minimum(), w._hours.maximum()) == (0, 23)
+    assert (w._minutes.minimum(), w._minutes.maximum()) == (1, 59)
+    w._hours.setValue(2)
     assert (w._minutes.minimum(), w._minutes.maximum()) == (0, 59)
 
 
-def test_intervalo_de_consulta(make_window):
-    config = Config(poll_interval=120)
+def test_minutos_minimos_dependen_de_las_horas(make_window):
+    w = make_window(config=Config(warn_hours=0, warn_minutes=5))
+    assert w._minutes.minimum() == 1
+    w._hours.setValue(1)
+    assert w._minutes.minimum() == 0
+    w._minutes.setValue(0)
+    w._hours.setValue(0)
+    assert w._minutes.value() == 1
+    assert w.config.warn_minutes == 1
+
+
+def test_intervalo_de_consulta_en_minutos(make_window):
+    config = Config(poll_minutes=10)
     w = make_window(config=config)
-    assert w._poll.currentData() == 120
-    w._poll.setCurrentIndex(POLL_CHOICES.index(300))
-    assert config.poll_interval == 300
-    assert cfg.load_config().poll_interval == 300
+    assert (w._poll.minimum(), w._poll.maximum()) == (5, 60)
+    assert w._poll.suffix() == " min"
+    assert w._poll.value() == 10
+    w._poll.setValue(30)
+    assert config.poll_minutes == 30
+    assert cfg.load_config().poll_minutes == 30
 
 
-def test_intervalo_desconocido_usa_60(make_window):
-    w = make_window(config=Config(poll_interval=7))
-    assert w._poll.currentData() == 60
+def test_intervalo_fuera_de_rango_se_recorta(make_window):
+    w = make_window(config=Config(poll_minutes=1))
+    assert w._poll.value() == 5
+    w2 = make_window(config=Config(poll_minutes=999))
+    assert w2._poll.value() == 60
 
 
 def test_elegir_sonido(make_window, monkeypatch, tmp_path):

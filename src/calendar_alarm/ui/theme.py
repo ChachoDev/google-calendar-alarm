@@ -65,6 +65,8 @@ QLineEdit, QSpinBox, QComboBox {
     selection-background-color: #2563eb;
     selection-color: #ffffff;
 }
+/* Los QSpinBox necesitan más aire a la izquierda y hueco para las flechas. */
+QSpinBox { padding-left: 14px; padding-right: 26px; }
 QLineEdit:focus, QSpinBox:focus, QComboBox:focus { border-color: #3b82f6; }
 QLineEdit:read-only { color: #aab2c5; }
 QSpinBox::up-button, QSpinBox::down-button { width: 18px; background: transparent; border: none; }

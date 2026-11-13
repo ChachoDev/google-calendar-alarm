@@ -2,13 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
-## [Sin publicar]
+## [1.1.0] - 2026-11-13
 
 ### Añadido
 - Botón **Cancelar** mientras se espera la autorización de Google en el
   navegador; la denegación del permiso se detecta al momento.
 - Suite de tests: unitarios, interfaz, integración, empaquetado y mutación
-  (`mutmut`), ejecutada en Linux, Windows y macOS por el workflow `Tests`.
+  (`mutmut`).
 - Variable `CALENDAR_ALARM_CONFIG_DIR` para usar otro directorio de
   configuración.
 - Opción `--use-pip` en `packaging/build.py`.
@@ -17,6 +17,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 - `packaging/build.py` usa uv cuando está instalado (más rápido, con caché) y,
   en Windows, encuentra Python con el lanzador `py`.
 - La espera de autorización en el navegador caduca a los 5 minutos.
+- El intervalo de consulta a Google Calendar se configura en **minutos**
+  (mínimo 5, máximo 60) en lugar de una lista de segundos.
+- El aviso de alarma valida sus límites: 0–23 horas y 0–59 minutos, con un
+  mínimo de 1 minuto cuando las horas son 0.
+
+### Eliminado
+- GitHub Actions: los tests y las compilaciones se ejecutan en local.
 
 ### Corregido
 - macOS: ⌘Q y «Salir» del Dock no cerraban la aplicación.

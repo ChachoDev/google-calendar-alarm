@@ -15,8 +15,18 @@ def test_valores_por_defecto():
     c = Config()
     assert (c.warn_hours, c.warn_minutes) == (0, 5)
     assert c.sound_path == ""
-    assert c.poll_interval == 60
+    assert c.poll_minutes == 5
+    assert c.poll_interval == 5 * 60
     assert c.warn_delta == timedelta(minutes=5)
+
+
+def test_aviso_cero_se_corrige_a_un_minuto():
+    assert Config(warn_hours=0, warn_minutes=0).warn_minutes == 1
+
+
+def test_aviso_recorta_horas_y_minutos_al_rango():
+    c = Config(warn_hours=99, warn_minutes=99)
+    assert (c.warn_hours, c.warn_minutes) == (23, 59)
 
 
 def test_warn_delta_combina_horas_y_minutos():
@@ -32,7 +42,7 @@ def test_warn_delta_acepta_texto_numerico():
     ("hours", "minutes", "label"),
     [
         (0, 5, "5 min"),
-        (0, 0, "0 min"),
+        (0, 0, "1 min"),  # 0 h 0 min no es válido: mínimo 1 minuto
         (2, 0, "2 h"),
         (1, 30, "1 h 30 min"),
     ],
@@ -85,7 +95,7 @@ def test_config_dir_crea_carpetas_intermedias(monkeypatch, tmp_path):
 def test_guardar_y_cargar_ida_y_vuelta():
     # Ruta con caracteres no ASCII: en Windows detecta escrituras sin UTF-8.
     original = Config(
-        warn_hours=1, warn_minutes=20, sound_path="/música/alarma ñ.ogg", poll_interval=120
+        warn_hours=1, warn_minutes=20, sound_path="/música/alarma ñ.ogg", poll_minutes=20
     )
     cfg.save_config(original)
     assert cfg.load_config() == original
@@ -127,7 +137,7 @@ def test_save_escribe_json_legible(isolated_environment):
         "warn_hours": 0,
         "warn_minutes": 7,
         "sound_path": "",
-        "poll_interval": 60,
+        "poll_minutes": 5,
     }
     assert '\n  "warn_hours": 0' in text  # sangría de 2 espacios, editable a mano
 
@@ -148,3 +158,26 @@ def test_asset_path_en_ejecutable_congelado(monkeypatch, tmp_path):
 def test_asset_path_inexistente_devuelve_ruta_del_paquete():
     path = cfg.asset_path("assets/no_existe.bin")
     assert path == Path(cfg.__file__).resolve().parent / "assets/no_existe.bin"
+
+
+def test_migra_poll_interval_de_segundos_a_minutos(isolated_environment):
+    """Las versiones antiguas guardaban segundos en poll_interval."""
+    cfg.config_dir()
+    (isolated_environment / "config.json").write_text(
+        json.dumps({"poll_interval": 600}), encoding="utf-8"
+    )
+    assert cfg.load_config().poll_minutes == 10
+
+
+def test_migracion_recorta_intervalos_antiguos_al_minimo(isolated_environment):
+    cfg.config_dir()
+    (isolated_environment / "config.json").write_text(
+        json.dumps({"poll_interval": 30}), encoding="utf-8"
+    )
+    assert cfg.load_config().poll_minutes == 5
+
+
+def test_poll_minutes_se_recorta_al_rango():
+    assert Config(poll_minutes=1).poll_minutes == 5
+    assert Config(poll_minutes=999).poll_minutes == 60
+    assert Config(poll_minutes="20").poll_minutes == 20  # type: ignore[arg-type]

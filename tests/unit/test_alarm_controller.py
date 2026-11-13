@@ -30,7 +30,7 @@ def audio():
 
 @pytest.fixture
 def config():
-    return Config(warn_hours=0, warn_minutes=5, poll_interval=60)
+    return Config(warn_hours=0, warn_minutes=5, poll_minutes=5)
 
 
 @pytest.fixture
@@ -95,25 +95,26 @@ def test_un_segundo_antes_del_margen_no_suena(controller, make_event, frozen_now
 
 
 def test_evento_recien_empezado_dentro_de_la_tolerancia_suena(controller, make_event, frozen_now):
-    # Tolerancia = un ciclo de consulta (60 s): no se pierde el aviso entre consultas.
-    controller.on_events([make_event(start=frozen_now - timedelta(seconds=60))])
+    # Tolerancia = un ciclo de consulta (5 min): no se pierde el aviso entre consultas.
+    controller.on_events([make_event(start=frozen_now - timedelta(minutes=5))])
     assert controller.ringing
 
 
 def test_evento_empezado_hace_mas_de_un_ciclo_no_suena(controller, make_event, frozen_now):
-    controller.on_events([make_event(start=frozen_now - timedelta(seconds=61))])
+    controller.on_events([make_event(start=frozen_now - timedelta(minutes=5, seconds=1))])
     assert not controller.ringing
 
 
-def test_tolerancia_minima_de_30_segundos(audio, make_event, frozen_now):
-    controller = AlarmController(audio, Config(poll_interval=5))  # type: ignore[arg-type]
-    controller.on_events([make_event(start=frozen_now - timedelta(seconds=30))])
+def test_tolerancia_minima_de_cinco_minutos(audio, make_event, frozen_now):
+    # poll_minutes=1 se recorta al mínimo de 5 minutos.
+    controller = AlarmController(audio, Config(poll_minutes=1))  # type: ignore[arg-type]
+    controller.on_events([make_event(start=frozen_now - timedelta(minutes=5))])
     assert controller.ringing
 
 
 def test_tolerancia_minima_no_se_extiende_de_mas(audio, make_event, frozen_now):
-    controller = AlarmController(audio, Config(poll_interval=5))  # type: ignore[arg-type]
-    controller.on_events([make_event(start=frozen_now - timedelta(seconds=31))])
+    controller = AlarmController(audio, Config(poll_minutes=1))  # type: ignore[arg-type]
+    controller.on_events([make_event(start=frozen_now - timedelta(minutes=5, seconds=1))])
     assert not controller.ringing
 
 

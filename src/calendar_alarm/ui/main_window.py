@@ -6,7 +6,6 @@ from pathlib import Path
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent, QFontMetrics
 from PySide6.QtWidgets import (
-    QComboBox,
     QFileDialog,
     QFrame,
     QGroupBox,
@@ -22,7 +21,13 @@ from PySide6.QtWidgets import (
 
 from calendar_alarm.audio import AudioPlayer
 from calendar_alarm.auth import GoogleAuth, GoogleAuthError, SignInCancelled
-from calendar_alarm.config import Config, default_sound_path, save_config
+from calendar_alarm.config import (
+    POLL_MAX_MINUTES,
+    POLL_MIN_MINUTES,
+    Config,
+    default_sound_path,
+    save_config,
+)
 from calendar_alarm.oauth_client import is_configured
 from calendar_alarm.ui.icons import bell_icon
 from calendar_alarm.ui.theme import APP_QSS
@@ -34,7 +39,6 @@ SOUND_FILTER = (
     "WAV (*.wav);;MP3 (*.mp3);;OGG (*.ogg);;FLAC (*.flac);;"
     "Todos los archivos (*)"
 )
-POLL_CHOICES = [30, 60, 120, 300]
 
 
 class SignInWorker(BackgroundThread):
@@ -204,7 +208,7 @@ class MainWindow(QWidget):
         self._hours.setRange(0, 23)
         self._hours.setValue(self.config.warn_hours)
         self._hours.setSuffix(" h")
-        self._hours.valueChanged.connect(self._on_warn_changed)
+        self._hours.valueChanged.connect(self._on_hours_changed)
         warn_row.addWidget(self._hours)
         self._minutes = QSpinBox()
         self._minutes.setRange(0, 59)
@@ -212,6 +216,7 @@ class MainWindow(QWidget):
         self._minutes.setSuffix(" min")
         self._minutes.valueChanged.connect(self._on_warn_changed)
         warn_row.addWidget(self._minutes)
+        self._sync_minutes_minimum()
         warn_row.addStretch(1)
         layout.addLayout(warn_row)
 
@@ -248,16 +253,16 @@ class MainWindow(QWidget):
 
         poll_row = QHBoxLayout()
         poll_row.addWidget(QLabel("Consultar Google Calendar cada"))
-        self._poll = QComboBox()
-        for seconds in POLL_CHOICES:
-            self._poll.addItem(f"{seconds} segundos", seconds)
-        index = (
-            POLL_CHOICES.index(self.config.poll_interval)
-            if self.config.poll_interval in POLL_CHOICES
-            else 1
+        self._poll = QSpinBox()
+        self._poll.setRange(POLL_MIN_MINUTES, POLL_MAX_MINUTES)
+        self._poll.setSingleStep(5)
+        self._poll.setSuffix(" min")
+        self._poll.setValue(self.config.poll_minutes)
+        self._poll.setToolTip(
+            f"Entre {POLL_MIN_MINUTES} y {POLL_MAX_MINUTES} minutos. "
+            "Cuanto más corto, más rápido se detectan los eventos nuevos."
         )
-        self._poll.setCurrentIndex(index)
-        self._poll.currentIndexChanged.connect(self._on_poll_changed)
+        self._poll.valueChanged.connect(self._on_poll_changed)
         poll_row.addWidget(self._poll)
         poll_row.addStretch(1)
         layout.addLayout(poll_row)
@@ -375,8 +380,16 @@ class MainWindow(QWidget):
         self.config.warn_minutes = self._minutes.value()
         save_config(self.config)
 
-    def _on_poll_changed(self, _index: int) -> None:
-        self.config.poll_interval = int(self._poll.currentData())
+    def _sync_minutes_minimum(self) -> None:
+        """Con 0 horas, los minutos no pueden ser 0 (sonaría al empezar)."""
+        self._minutes.setMinimum(0 if self._hours.value() > 0 else 1)
+
+    def _on_hours_changed(self, _value: int) -> None:
+        self._sync_minutes_minimum()
+        self._on_warn_changed(self._minutes.value())
+
+    def _on_poll_changed(self, value: int) -> None:
+        self.config.poll_minutes = int(value)
         save_config(self.config)
 
     def _on_browse_sound(self) -> None:
