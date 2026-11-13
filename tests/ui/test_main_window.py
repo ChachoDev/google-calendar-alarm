@@ -229,6 +229,12 @@ def test_rango_de_los_selectores(make_window):
     assert (w._minutes.minimum(), w._minutes.maximum()) == (0, 59)
 
 
+def test_texto_de_horas_y_minutos_centrado(make_window):
+    w = make_window()
+    assert w._hours.alignment() == Qt.AlignmentFlag.AlignCenter
+    assert w._minutes.alignment() == Qt.AlignmentFlag.AlignCenter
+
+
 def test_minutos_minimos_dependen_de_las_horas(make_window):
     w = make_window(config=Config(warn_hours=0, warn_minutes=5))
     assert w._minutes.minimum() == 1

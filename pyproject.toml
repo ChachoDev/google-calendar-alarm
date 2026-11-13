@@ -1,6 +1,6 @@
 [project]
 name = "calendar-alarm"
-version = "1.1.0"
+version = "1.1.1"
 description = "Alarma multiplataforma (Windows/Linux/macOS) ligada a Google Calendar"
 readme = "README.md"
 license = "MIT"
