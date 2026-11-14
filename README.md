@@ -13,12 +13,19 @@ personalizable **antes** de que empiece un evento de Google Calendar.
 | Sistema | Archivo | Estado |
 |---|---|---|
 | **Linux x86_64** | [`calendar-alarm-linux-x86_64`](https://github.com/ChachoDev/google-calendar-alarm/releases/latest/download/calendar-alarm-linux-x86_64) | Disponible |
+| **macOS (Apple Silicon)** | [`calendar-alarm-macos-arm64.dmg`](https://github.com/ChachoDev/google-calendar-alarm/releases/latest/download/calendar-alarm-macos-arm64.dmg) | Disponible |
 | **Windows x86_64** | `calendar-alarm-windows-x86_64.exe` | Próximamente |
-| **macOS (Apple Silicon)** | `calendar-alarm-macos-arm64.dmg` | Próximamente |
 
 No hace falta Python ni compilar nada. Todos los binarios están en la
 [página de releases](https://github.com/ChachoDev/google-calendar-alarm/releases),
-con su SHA-256.
+con su SHA-256 y un archivo `SHA256SUMS`.
+
+- **Linux**: si el archivo no arranca, dale permiso de ejecución con
+  `chmod +x calendar-alarm-linux-x86_64`.
+- **macOS**: abre el `.dmg`, arrastra *Calendar Alarm* a Aplicaciones y, la
+  primera vez, ábrela con clic derecho → **Abrir** (no está firmada). También
+  puedes quitar la cuarentena con
+  `xattr -dr com.apple.quarantine "/Applications/Calendar Alarm.app"`.
 
 ## Características
 
